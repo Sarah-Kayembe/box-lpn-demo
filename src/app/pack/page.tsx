@@ -135,7 +135,7 @@ export default function PackPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.15fr]">
         {/* Inventory */}
-        <section className="card">
+        <section className="card min-w-0">
           <label className="label" htmlFor="scan">
             Scan or search inventory
           </label>
@@ -175,7 +175,7 @@ export default function PackPage() {
         </section>
 
         {/* The box */}
-        <section className="card flex flex-col">
+        <section className="card flex min-w-0 flex-col">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-bold">This box</h2>
             <span className="text-sm text-navy-soft">{units} units</span>

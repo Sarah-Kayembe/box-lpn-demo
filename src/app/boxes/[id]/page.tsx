@@ -93,7 +93,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Contents */}
           <section className="card">
             <div className="flex items-baseline justify-between">
@@ -154,7 +154,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
           </section>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Where it is */}
           <section className="card">
             <h2 className="text-lg font-bold">Where it is</h2>
