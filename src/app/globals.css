@@ -26,26 +26,43 @@ body {
 }
 
 /* Shared building blocks */
-@layer components {
-  .card {
-    @apply rounded-2xl border border-line bg-white p-5 shadow-[0_4px_16px_rgba(31,40,52,0.05)];
+@utility card {
+  @apply rounded-2xl border border-line bg-white p-5 shadow-[0_4px_16px_rgba(31,40,52,0.05)];
+}
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-navy text-white hover:bg-navy-soft;
+}
+@utility btn-accent {
+  @apply btn bg-red-brand text-white hover:brightness-110;
+}
+@utility btn-ghost {
+  @apply btn border border-line bg-white text-navy hover:bg-sky-soft;
+}
+@utility input {
+  @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-navy outline-none placeholder:text-navy-soft/60 focus:border-sky-brand focus:ring-4 focus:ring-sky-soft;
+}
+@utility label {
+  @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-navy-soft;
+}
+
+/* Printing: only the label, at exactly 4 x 6 inches */
+@media print {
+  @page {
+    size: 4in 6in;
+    margin: 0;
   }
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  body {
+    background: white;
   }
-  .btn-primary {
-    @apply btn bg-navy text-white hover:bg-navy-soft;
+  .no-print {
+    display: none !important;
   }
-  .btn-accent {
-    @apply btn bg-red-brand text-white hover:brightness-110;
-  }
-  .btn-ghost {
-    @apply btn border border-line bg-white text-navy hover:bg-sky-soft;
-  }
-  .input {
-    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-navy outline-none placeholder:text-navy-soft/60 focus:border-sky-brand focus:ring-4 focus:ring-sky-soft;
-  }
-  .label {
-    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-navy-soft;
+  .label-4x6 {
+    box-shadow: none !important;
+    border: 0 !important;
+    break-after: page;
   }
 }
