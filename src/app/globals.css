@@ -10,12 +10,12 @@
   --color-navy: #1f2834;
   --color-navy-soft: #4a5566;
   --color-line: #d9e9f2;
-  --color-mint-soft: #e2f5ec;
-  --color-mint: #2f8a5f;
+  --color-mint-soft: #edf5ee;
+  --color-mint: #2e7d32;
   --color-butter-soft: #fdf3d8;
   --color-butter: #9a6b00;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -23,29 +23,34 @@ body {
   background: var(--color-sky-wash);
   color: var(--color-navy);
   font-family: var(--font-sans);
+  font-size: 16px;
 }
 
 /* Shared building blocks */
 @utility card {
-  @apply rounded-2xl border border-line bg-white p-5 shadow-[0_4px_16px_rgba(31,40,52,0.05)];
+  @apply rounded-[4px] border border-line bg-white p-5;
 }
+/* Buttons: big, solid and clear. Filled for the main action, a strong outline for the second one. */
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-base leading-none font-bold transition select-none active:translate-y-px focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-brand disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[#dfe6eb] disabled:text-[#8a96a3] disabled:active:translate-y-0;
 }
 @utility btn-primary {
-  @apply btn bg-navy text-white hover:bg-navy-soft;
+  @apply btn bg-navy text-white hover:bg-[#34424f];
 }
 @utility btn-accent {
-  @apply btn bg-red-brand text-white hover:brightness-110;
+  @apply btn bg-red-brand text-white hover:bg-[#bf3f34];
 }
 @utility btn-ghost {
-  @apply btn border border-line bg-white text-navy hover:bg-sky-soft;
+  @apply btn border-2 border-navy bg-white text-navy hover:bg-sky-soft;
+}
+@utility btn-sm {
+  @apply min-h-10 px-4 text-[15px];
 }
 @utility input {
-  @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-navy outline-none placeholder:text-navy-soft/60 focus:border-sky-brand focus:ring-4 focus:ring-sky-soft;
+  @apply min-h-12 w-full rounded-[4px] border border-[#b9c8d2] bg-white px-3.5 text-base text-navy outline-none placeholder:text-navy-soft/60 focus:border-navy focus:ring-2 focus:ring-sky-brand/60;
 }
 @utility label {
-  @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-navy-soft;
+  @apply mb-1.5 block text-[15px] font-bold text-navy;
 }
 
 /* Printing: only the label, at exactly 4 x 6 inches */

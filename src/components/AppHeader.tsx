@@ -39,7 +39,8 @@ export function AppHeader() {
           })}
         </nav>
 
-        <span className="ml-auto rounded-full bg-butter-soft px-3 py-1 text-xs font-semibold text-butter">
+        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-butter/60 bg-butter-soft px-3 py-1 text-[13px] font-bold text-butter">
+          <span className="h-2 w-2 rounded-full bg-butter" aria-hidden="true" />
           Demo data
         </span>
       </div>

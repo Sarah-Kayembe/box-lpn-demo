@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api/client";
 import type { BoxTagItem, InventoryItem, PackTemplate, UnitOfMeasurement } from "@/lib/types";
 
@@ -157,13 +158,15 @@ export default function PackPage() {
                   <p className="text-xs text-navy-soft">
                     {inv.sku} · {inv.fnsku} · {inv.quantity} on hand
                     {inv.product.requires_expiration && (
-                      <span className="ml-2 rounded-full bg-butter-soft px-2 py-0.5 font-semibold text-butter">
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-butter/60 bg-butter-soft px-2 py-px font-bold text-butter">
+                        <span className="h-1.5 w-1.5 rounded-full bg-butter" />
                         needs expiry
                       </span>
                     )}
                   </p>
                 </div>
-                <button className="btn-ghost px-3.5 py-1.5" onClick={() => addItem(inv)}>
+                <button className="btn-ghost btn-sm" onClick={() => addItem(inv)}>
+                  <Icon name="plus" size={16} />
                   Add
                 </button>
               </li>
@@ -182,7 +185,7 @@ export default function PackPage() {
           </div>
 
           {lines.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-line bg-sky-wash p-8 text-center text-sm text-navy-soft">
+            <div className="mt-4 rounded-[4px] border border-dashed border-[#c5d3dc] bg-sky-wash p-8 text-center text-sm text-navy-soft">
               Nothing in the box yet.
             </div>
           ) : (
@@ -190,7 +193,7 @@ export default function PackPage() {
               {lines.map((l) => (
                 <li
                   key={l.sku}
-                  className={`rounded-xl border p-3 transition ${
+                  className={`rounded-[4px] border p-3 transition ${
                     flash === l.sku ? "border-sky-brand bg-sky-soft" : "border-line"
                   }`}
                 >
@@ -266,7 +269,7 @@ export default function PackPage() {
               {(["length", "width", "height"] as const).map((k) => (
                 <div key={k}>
                   <label className="label" htmlFor={k}>
-                    {k} (in)
+                    {{ length: "Length", width: "Width", height: "Height" }[k]} (in)
                   </label>
                   <input
                     id={k}
@@ -312,6 +315,7 @@ export default function PackPage() {
               {hint}
             </p>
             <button className="btn-accent" disabled={!canSave} onClick={seal}>
+              <Icon name="printer" />
               {saving ? "Sealing…" : "Seal box and print label"}
             </button>
           </div>
