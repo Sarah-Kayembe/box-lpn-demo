@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
@@ -49,6 +50,7 @@ export default function BoxesPage() {
           <p className="mt-1 text-sm text-navy-soft">Every sealed box, where it is, and what’s in it.</p>
         </div>
         <Link href="/pack" className="btn-primary ml-auto">
+          <Icon name="plus" />
           Pack a box
         </Link>
       </div>
@@ -58,8 +60,10 @@ export default function BoxesPage() {
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-              filter === f.value ? "bg-navy text-white" : "bg-white text-navy-soft ring-1 ring-line hover:bg-sky-soft"
+            className={`min-h-10 rounded-full border-2 px-5 text-[15px] font-bold transition ${
+              filter === f.value
+                ? "border-navy bg-navy text-white"
+                : "border-sky-brand bg-sky-soft text-navy hover:border-navy"
             }`}
           >
             {f.label}
