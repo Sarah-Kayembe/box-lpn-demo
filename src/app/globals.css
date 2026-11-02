@@ -63,6 +63,5 @@ body {
   .label-4x6 {
     box-shadow: none !important;
     border: 0 !important;
-    break-after: page;
   }
 }
