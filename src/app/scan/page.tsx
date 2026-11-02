@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api/client";
 import { normalizeBoxTagId } from "@/lib/api/box-tag-store";
 
@@ -101,6 +102,7 @@ export default function ScanPage() {
           />
           <button className="btn-primary shrink-0" disabled={!code.trim()}>
             Open
+            <Icon name="arrow" />
           </button>
         </div>
         {error && <p className="mt-3 text-sm text-red-brand">{error}</p>}
@@ -118,6 +120,7 @@ export default function ScanPage() {
         />
         {camera === "off" && (
           <button className="btn-ghost" onClick={startCamera}>
+            <Icon name="camera" />
             Use camera instead
           </button>
         )}

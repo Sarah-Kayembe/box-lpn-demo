@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
@@ -38,9 +39,11 @@ export default function Home() {
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/pack" className="btn-primary">
+            <Icon name="plus" />
             Pack a box
           </Link>
           <Link href="/scan" className="btn-ghost">
+            <Icon name="scan" />
             Scan a box
           </Link>
         </div>

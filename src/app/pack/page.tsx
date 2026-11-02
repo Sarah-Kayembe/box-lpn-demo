@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api/client";
 import type { BoxTagItem, InventoryItem, PackTemplate, UnitOfMeasurement } from "@/lib/types";
 
@@ -157,13 +158,15 @@ export default function PackPage() {
                   <p className="text-xs text-navy-soft">
                     {inv.sku} · {inv.fnsku} · {inv.quantity} on hand
                     {inv.product.requires_expiration && (
-                      <span className="ml-2 rounded-[3px] border border-butter/40 bg-butter-soft px-1.5 py-px font-semibold text-butter">
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-butter/60 bg-butter-soft px-2 py-px font-bold text-butter">
+                        <span className="h-1.5 w-1.5 rounded-full bg-butter" />
                         needs expiry
                       </span>
                     )}
                   </p>
                 </div>
-                <button className="btn-ghost px-3.5 py-1.5" onClick={() => addItem(inv)}>
+                <button className="btn-ghost btn-sm" onClick={() => addItem(inv)}>
+                  <Icon name="plus" size={16} />
                   Add
                 </button>
               </li>
@@ -312,6 +315,7 @@ export default function PackPage() {
               {hint}
             </p>
             <button className="btn-accent" disabled={!canSave} onClick={seal}>
+              <Icon name="printer" />
               {saving ? "Sealing…" : "Seal box and print label"}
             </button>
           </div>
