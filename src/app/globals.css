@@ -30,33 +30,27 @@ body {
 @utility card {
   @apply rounded-[4px] border border-line bg-white p-5;
 }
+/* Buttons: big, solid and clear. Filled for the main action, a strong outline for the second one. */
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full px-6 text-base leading-none font-bold transition select-none active:translate-y-px focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-sky-brand disabled:cursor-not-allowed disabled:border-transparent disabled:bg-[#dfe6eb] disabled:text-[#8a96a3] disabled:active:translate-y-0;
 }
 @utility btn-primary {
-  @apply btn bg-navy text-white hover:bg-navy-soft;
+  @apply btn bg-navy text-white hover:bg-[#34424f];
 }
 @utility btn-accent {
-  @apply btn bg-red-brand text-white hover:brightness-110;
+  @apply btn bg-red-brand text-white hover:bg-[#bf3f34];
 }
 @utility btn-ghost {
-  @apply btn border border-line bg-white text-navy hover:bg-sky-soft;
+  @apply btn border-2 border-navy bg-white text-navy hover:bg-sky-soft;
+}
+@utility btn-sm {
+  @apply min-h-10 px-4 text-[15px];
 }
 @utility input {
-  @apply w-full rounded-[3px] border border-[#c5d3dc] bg-white px-3 py-2 text-[15px] text-navy outline-none placeholder:text-navy-soft/60 focus:border-navy-soft focus:ring-2 focus:ring-sky-soft;
+  @apply min-h-12 w-full rounded-[4px] border border-[#b9c8d2] bg-white px-3.5 text-base text-navy outline-none placeholder:text-navy-soft/60 focus:border-navy focus:ring-2 focus:ring-sky-brand/60;
 }
 @utility label {
-  @apply mb-1 block text-sm font-semibold text-navy;
-}
-/* Plain notices, like a regular admin screen: white with a colored left edge */
-@utility notice {
-  @apply rounded-[3px] border border-line border-l-4 bg-white px-4 py-3 text-[15px] text-navy;
-}
-@utility notice-success {
-  @apply notice border-l-mint;
-}
-@utility notice-error {
-  @apply notice border-l-red-brand;
+  @apply mb-1.5 block text-[15px] font-bold text-navy;
 }
 
 /* Printing: only the label, at exactly 4 x 6 inches */
