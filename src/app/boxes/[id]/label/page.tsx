@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
+import { Alert } from "@/components/Alert";
 import { use, useEffect, useState } from "react";
 import { BoxLabel } from "@/components/BoxLabel";
 import { api } from "@/lib/api/client";
@@ -34,13 +36,10 @@ export default function LabelPage({
     <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center">
       <div className="no-print w-full max-w-sm space-y-4 lg:order-2">
         {isNew && (
-          <div className="notice-success">
-            <p className="font-bold">Box {box.box_tag_id} is sealed.</p>
-            <p className="mt-1 text-navy-soft">
-              {totalUnits(box)} units are now tied to this one barcode. Print the label and stick it
-              on the box.
-            </p>
-          </div>
+          <Alert tone="success" title={`Box ${box.box_tag_id} is sealed`}>
+            {totalUnits(box)} units are now tied to this one barcode. Print the label and stick it on
+            the box.
+          </Alert>
         )}
         <div className="card space-y-3">
           <h1 className="text-xl font-bold">Box label</h1>
@@ -50,10 +49,12 @@ export default function LabelPage({
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <button className="btn-accent" onClick={print}>
+              <Icon name="printer" />
               Print label
             </button>
             <Link className="btn-ghost" href={`/boxes/${box.box_tag_id}`}>
-              {box.status === "packed" ? "Next, put it away" : "Back to box"}
+              {box.status === "packed" ? "Put it away" : "Back to box"}
+              <Icon name="arrow" />
             </Link>
           </div>
         </div>

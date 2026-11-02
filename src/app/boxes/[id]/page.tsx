@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
+import { Alert } from "@/components/Alert";
 import { use, useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
@@ -16,7 +18,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
   const [locationId, setLocationId] = useState("");
   const [shipmentId, setShipmentId] = useState("");
   const [busy, setBusy] = useState<"store" | "ship" | null>(null);
-  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [message, setMessage] = useState<{ tone: "ok" | "error"; title: string; text: string } | null>(null);
   const [showPayload, setShowPayload] = useState(false);
 
   useEffect(() => {
@@ -46,9 +48,9 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
       const updated = await api.putAway(box.box_tag_id, loc);
       setBox(updated);
       setLocationId("");
-      setMessage({ tone: "ok", text: `Box is now at ${loc.location_name}.` });
+      setMessage({ tone: "ok", title: "Box put away", text: `It’s now at ${loc.location_name}.` });
     } catch (e) {
-      setMessage({ tone: "error", text: e instanceof Error ? e.message : "Could not save the location" });
+      setMessage({ tone: "error", title: "Couldn’t save the location", text: e instanceof Error ? e.message : "Please try again." });
     } finally {
       setBusy(null);
     }
@@ -62,10 +64,11 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
       setBox(updated);
       setMessage({
         tone: "ok",
-        text: `Added to ${shipment.shipment_id}. All ${totalUnits(updated)} units went in without unpacking the box.`,
+        title: `Added to ${shipment.shipment_id}`,
+        text: `All ${totalUnits(updated)} units went in without unpacking the box.`,
       });
     } catch (e) {
-      setMessage({ tone: "error", text: e instanceof Error ? e.message : "Could not add the box" });
+      setMessage({ tone: "error", title: "Couldn’t add the box", text: e instanceof Error ? e.message : "Please try again." });
     } finally {
       setBusy(null);
     }
@@ -77,17 +80,19 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
         <h1 className="font-mono text-3xl font-bold">{box.box_tag_id}</h1>
         <StatusBadge status={box.status} />
         <Link href={`/boxes/${box.box_tag_id}/label`} className="btn-ghost ml-auto">
+          <Icon name="printer" />
           {box.history.some((h) => h.type === "label_printed") ? "Reprint label" : "Print label"}
         </Link>
       </div>
 
       {message && (
-        <div
-          role="status"
-          className={message.tone === "ok" ? "notice-success" : "notice-error"}
+        <Alert
+          tone={message.tone === "ok" ? "success" : "error"}
+          title={message.title}
+          onClose={() => setMessage(null)}
         >
           {message.text}
-        </div>
+        </Alert>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -191,6 +196,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                       ))}
                   </select>
                   <button className="btn-primary shrink-0" disabled={!locationId || busy !== null} onClick={putAway}>
+                    <Icon name="shelf" />
                     {busy === "store" ? "Saving…" : "Save"}
                   </button>
                 </div>
@@ -223,6 +229,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                 ))}
               </select>
               <button className="btn-accent mt-3 w-full" disabled={!shipment || busy !== null} onClick={ship}>
+                <Icon name="truck" />
                 {busy === "ship" ? "Adding…" : "Add box to shipment"}
               </button>
 
