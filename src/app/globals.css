@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* BoxTag palette, based on ScanPower's brand colors */
+@theme {
+  --color-sky-brand: #9bd5f2;
+  --color-sky-soft: #e3f3fb;
+  --color-sky-wash: #f4fafd;
+  --color-red-brand: #d64d41;
+  --color-red-soft: #fbe6e3;
+  --color-navy: #1f2834;
+  --color-navy-soft: #4a5566;
+  --color-line: #d9e9f2;
+  --color-mint-soft: #e2f5ec;
+  --color-mint: #2f8a5f;
+  --color-butter-soft: #fdf3d8;
+  --color-butter: #9a6b00;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-sky-wash);
+  color: var(--color-navy);
+  font-family: var(--font-sans);
+}
+
+/* Shared building blocks */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-white p-5 shadow-[0_4px_16px_rgba(31,40,52,0.05)];
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-navy text-white hover:bg-navy-soft;
+  }
+  .btn-accent {
+    @apply btn bg-red-brand text-white hover:brightness-110;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-white text-navy hover:bg-sky-soft;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-navy outline-none placeholder:text-navy-soft/60 focus:border-sky-brand focus:ring-4 focus:ring-sky-soft;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-navy-soft;
+  }
 }
