@@ -1,33 +1,69 @@
 # BoxTag
 
-**Pack now, ship later. One barcode for the box and everything inside it.**
-
-BoxTag is a proof of concept built on the ScanPower v3 API. A worker packs a box, prints a 4 × 6 label with one barcode, and puts the box on a shelf. Later, anyone can scan the label to see exactly what's inside and where it is, then add the whole box to an Amazon shipment without unpacking or rescanning a single item.
+BoxTag gives a packed box one barcode that stands for the box and everything inside it. A box can be packed today, stored on a shelf, and added to an Amazon shipment weeks later without anyone opening it to check what's inside. It's a proof of concept built against the ScanPower v3 API.
 
 ![Overview](docs/overview.png)
 
-## Why
+## The problem it solves
 
-ScanPower boxes (`/v3/az-box`) always belong to a shipment, and the box label endpoint (`/v3/label/box`) prints Amazon shipment labels. There's no way to pack a box before a shipment exists, store it, and keep track of what's in it. Warehouses usually solve this with a license plate number (LPN), a unique barcode for a box and its contents. BoxTag adds that step.
+In ScanPower, a box (`/v3/az-box`) only exists as part of a shipment, and the box label endpoint (`/v3/label/box`) prints Amazon shipment labels. A box packed ahead of time has nowhere to live and nothing that records its contents. Warehouses usually handle this with a license plate number (LPN), a unique ID for a container and its contents. BoxTag adds that layer on top of what ScanPower already has.
 
-## How it works
+## How a box moves through the app
 
-1. **Pack.** Scan an FNSKU or search by SKU or product name. Each scan adds one unit. Items that need an expiration date can't be sealed without one, and lot codes are optional. Box size comes from a pack template or can be typed in.
-2. **Label.** Sealing the box gives it an ID like `BT-000104` and opens a 4 × 6 label for Rollo, Zebra and similar printers. The **Code 128** barcode holds the box ID for warehouse scanners. The **QR code** opens the box in BoxTag on a phone. The label also lists the SKUs, quantities and expiration dates, so it's readable without any device.
-3. **Store.** Put the box away at a ScanPower location (`/v3/location`). Moves are recorded in the box history.
-4. **Scan.** A scanner, a phone camera (Chrome on Android and desktop), or a typed ID opens the box with its live contents and location. Partial input like `104` works too.
-5. **Ship.** Pick an open shipment and the box goes in with all its items. The screen can show the exact ScanPower API calls this makes.
+```
+pack ──> label ──> store ──> scan ──> ship
+ │         │         │        │        └─ POST /v3/az-box, PATCH /v3/az-box/items
+ │         │         │        └─ box ID or QR URL resolves to the box record
+ │         │         └─ location from GET /v3/location, every move logged
+ │         └─ Code 128 (box ID) + QR (box URL) on a 4 × 6 label
+ └─ items from GET /v3/inventory, size from GET /v3/pack-template
+```
 
-| Pack | Box page and API preview | Printed label |
+Each box has a status of `packed`, `stored` or `shipped`, and a history of events (packed, label printed, stored, moved, shipped) with timestamps.
+
+| Pack | Box page with API preview | Printed label |
 |---|---|---|
 | ![Pack](docs/pack.png) | ![Box](docs/box.png) | ![Label](docs/label.png) |
 
-## Mock mode and live mode
+## How the code is organized
 
-Everything goes through one client (`src/lib/api/client.ts`) with two sources.
+```
+src/
+├── app/
+│   ├── page.tsx                      Overview: boxes on shelves, recent boxes
+│   ├── pack/page.tsx                 Scan or search items into a box and seal it
+│   ├── boxes/page.tsx                All boxes, filtered by status or searched by SKU
+│   ├── boxes/[id]/page.tsx           Contents, history, put away, add to shipment
+│   ├── boxes/[id]/label/page.tsx     4 × 6 label preview and print
+│   ├── scan/page.tsx                 Scanner, camera or typed ID lookup
+│   └── api/scanpower/[...path]/      Server-side proxy to ScanPower (live mode)
+├── components/
+│   ├── BoxLabel.tsx                  The label layout, black on white for thermal printers
+│   ├── Barcode.tsx                   Code 128 and QR codes as inline SVG
+│   ├── AppHeader.tsx, StatusBadge.tsx
+└── lib/
+    ├── types.ts                      ScanPower types (field names from the OpenAPI doc) and BoxTag types
+    ├── api/client.ts                 The one object every screen calls
+    ├── api/mock.ts                   Sample-data source
+    ├── api/live.ts                   Real ScanPower source
+    ├── api/payloads.ts               Builds the az-box requests from a BoxTag
+    ├── api/box-tag-store.ts          Box records, IDs and history
+    ├── mock-data.ts                  Inventory, locations, pack templates, shipments, seed boxes
+    ├── format.ts, useBoxTag.ts
+```
 
-- **Mock (default)** uses sample data shaped exactly like ScanPower v3 responses (`src/lib/mock-data.ts`). No account needed.
-- **Live** calls ScanPower through `src/app/api/scanpower/[...path]/route.ts`, a small server-side proxy that logs in with `GET /v3/auth` (Basic auth), caches the bearer token, and only forwards the few paths BoxTag needs. Credentials never reach the browser.
+## The data layer
+
+Screens never fetch anything directly. They call `api` from `lib/api/client.ts`, which combines two pieces.
+
+**A ScanPower source** for inventory, locations, pack templates, open shipments, and adding a box to a shipment. There are two implementations of the same `ScanPowerSource` interface, chosen by `NEXT_PUBLIC_BOXTAG_MODE`.
+
+- `mock.ts` serves sample data shaped exactly like the v3 responses, with a short delay so loading states are real.
+- `live.ts` calls `/api/scanpower/...`, a Next.js route that logs in with `GET /v3/auth` using Basic auth, caches the bearer token until just before it expires, and forwards requests. Only the five paths BoxTag needs are allowed through, and credentials stay on the server.
+
+**The box store** (`box-tag-store.ts`) keeps BoxTag records, generates sequential IDs (`BT-000104`), and appends history events. ScanPower has no endpoint for a box that isn't in a shipment yet, so this demo keeps the records in the browser's local storage, with a fallback to memory if storage is unavailable.
+
+Adding a box to a shipment is where the two meet. `payloads.ts` turns a BoxTag into the two requests ScanPower already accepts, first `POST /v3/az-box` with the dimensions, weight and unit count, then `PATCH /v3/az-box/items` with each SKU, FNSKU, quantity, expiration and lot code. The live source sends them. The box page shows the same payloads on screen, so what you see is exactly what would be sent.
 
 | BoxTag action | ScanPower endpoint |
 |---|---|
@@ -37,45 +73,46 @@ Everything goes through one client (`src/lib/api/client.ts`) with two sources.
 | List open shipments | `GET /v3/az-shipment` |
 | Add a box to a shipment | `POST /v3/az-box`, then `PATCH /v3/az-box/items` |
 
-**Status.** Mock mode is fully tested in the browser, including a pack to label to store to scan to ship walkthrough, phone-sized screens, and printing. The printed barcodes were checked with a barcode decoder. Live mode is written from the OpenAPI document and has **not yet been run against a real ScanPower account**.
+## Barcodes and the label
 
-### Where box records live
+`Barcode.tsx` draws codes with bwip-js as inline SVG, so they stay sharp at any print resolution. The label carries two codes for two kinds of readers.
 
-ScanPower doesn't have a place for a box that isn't in a shipment yet, so this demo keeps BoxTag records in the browser (`src/lib/api/box-tag-store.ts`). In the real product they'd belong in ScanPower, for example:
+- **Code 128** holds only the box ID. Short and simple, so handheld warehouse scanners read it fast.
+- **QR** holds the box's URL, so a phone camera opens the live record with current contents and location.
+
+The label also prints the SKUs, FNSKUs, quantities, expiration dates, size, weight and location in plain text, so it's still useful with no device at all. Long boxes show the first seven SKUs and point to the QR code for the rest. Print CSS sets `@page` to 4 × 6 inches with no margins and hides everything except the label, so it comes out as a single page on Rollo and Zebra printers.
+
+## Scanning
+
+Most warehouse scanners act like a keyboard. They type the code and press Enter, so the pack and scan screens listen for Enter. On the pack screen, an exact SKU or FNSKU match adds one unit. On the scan screen, the input accepts a Code 128 box ID, a QR URL, or partial typing like `104`, and `normalizeBoxTagId` turns all of them into `BT-000104`. Where the browser supports the `BarcodeDetector` API (Chrome on Android and desktop), the scan screen can also use the camera.
+
+## Rules the app enforces
+
+- A box can't be sealed while any item that requires an expiration date is missing one.
+- The earliest expiration in a box is shown on the label and the box list, so short-dated boxes ship first.
+- A box that's already in a shipment can't be added to another one.
+- Moving a stored box keeps its status and records the move. Shipping clears its shelf location.
+
+## Status
+
+Mock mode has been tested end to end in a browser, covering pack, label, put away, scan and ship, plus phone-sized screens and printing. Both barcodes on the printed label were verified with a decoder. Live mode is written from the v3 OpenAPI document and has not yet been run against a real ScanPower account.
+
+A full version would move box records into ScanPower itself. One possible shape:
 
 ```
 GET    /v3/box-tag?status=stored&location_id=...
-POST   /v3/box-tag                 { items, dimensions, weight, notes }
-PATCH  /v3/box-tag/{box_tag_id}    { location_id }
-POST   /v3/box-tag/{box_tag_id}/ship  { shipment_id }   -> creates the az-box and items
-GET    /v3/label/box-tag?box_tag_ids=...   -> 4 x 6 PDF
+POST   /v3/box-tag
+PATCH  /v3/box-tag/{box_tag_id}
+POST   /v3/box-tag/{box_tag_id}/ship
+GET    /v3/label/box-tag?box_tag_ids=...
 ```
 
-The screens only talk to `api.*`, so swapping the browser store for these endpoints wouldn't change any UI code.
-
-## Run it
-
-```bash
-npm install
-npm run dev
-```
-
-Open http://localhost:3000. Use **Reset demo data** on the overview page to start over.
-
-For live mode, copy `.env.example` to `.env.local` and fill in:
-
-```
-NEXT_PUBLIC_BOXTAG_MODE=live
-SCANPOWER_BASE_URL=https://beta.scanpower.com/api
-SCANPOWER_USERNAME=...
-SCANPOWER_PASSWORD=...
-NEXT_PUBLIC_SCANPOWER_SHIP_FROM_ID=...
-```
+Since screens only talk to `api`, swapping the browser store for these endpoints wouldn't change any UI code.
 
 ## Built with
 
-Next.js 15, TypeScript, Tailwind CSS 4, and [bwip-js](https://github.com/metafloor/bwip-js) for the barcodes.
+Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4, and bwip-js for barcodes.
 
 ---
 
-A proof of concept by Sarah Kayembe. Not an official ScanPower product. All product names and data in mock mode are made up.
+A proof of concept by Sarah Kayembe. Not an official ScanPower product. Product names and data in mock mode are made up.
