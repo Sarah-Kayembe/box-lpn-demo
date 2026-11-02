@@ -34,9 +34,9 @@ export default function LabelPage({
     <div className="flex flex-col items-center gap-6 lg:flex-row lg:items-start lg:justify-center">
       <div className="no-print w-full max-w-sm space-y-4 lg:order-2">
         {isNew && (
-          <div className="rounded-2xl bg-mint-soft p-4 text-sm text-mint">
+          <div className="notice-success">
             <p className="font-bold">Box {box.box_tag_id} is sealed.</p>
-            <p className="mt-1">
+            <p className="mt-1 text-navy-soft">
               {totalUnits(box)} units are now tied to this one barcode. Print the label and stick it
               on the box.
             </p>
@@ -66,7 +66,7 @@ export default function LabelPage({
         </div>
       </div>
 
-      <div className="rounded-sm shadow-[0_8px_30px_rgba(31,40,52,0.15)] lg:order-1 print:shadow-none">
+      <div className="border border-[#c5d3dc] lg:order-1 print:border-0">
         <BoxLabel box={box} locationName={locationName(box.location_id)} url={`${origin}/boxes/${box.box_tag_id}`} />
       </div>
     </div>

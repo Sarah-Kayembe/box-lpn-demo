@@ -84,9 +84,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
       {message && (
         <div
           role="status"
-          className={`rounded-2xl p-4 text-sm font-medium ${
-            message.tone === "ok" ? "bg-mint-soft text-mint" : "bg-red-soft text-red-brand"
-          }`}
+          className={message.tone === "ok" ? "notice-success" : "notice-error"}
         >
           {message.text}
         </div>
@@ -130,7 +128,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                 </tbody>
               </table>
             </div>
-            <dl className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-sky-wash p-4 text-sm sm:grid-cols-4">
+            <dl className="mt-4 grid grid-cols-2 gap-3 rounded-[3px] border border-line bg-sky-wash p-4 text-sm sm:grid-cols-4">
               <Fact label="Size" value={formatDims(box)} />
               <Fact label="Weight" value={box.weight ? `${box.weight} lb` : "—"} />
               <Fact label="Packed" value={formatDate(box.packed_at)} />
@@ -258,7 +256,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-navy-soft">{label}</dt>
+      <dt className="text-sm font-semibold text-navy-soft">{label}</dt>
       <dd className="mt-0.5 font-medium">{value}</dd>
     </div>
   );
@@ -266,7 +264,7 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 function Payload({ title, body }: { title: string; body: unknown }) {
   return (
-    <div className="rounded-xl bg-navy/[0.04] p-3">
+    <div className="rounded-[3px] border border-line bg-sky-wash p-3">
       <p className="mb-1 font-mono font-semibold">{title}</p>
       <pre className="max-h-56 overflow-auto whitespace-pre font-mono text-[11px] leading-relaxed text-navy-soft">
         {JSON.stringify(body, null, 2)}

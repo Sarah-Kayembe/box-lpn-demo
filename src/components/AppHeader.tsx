@@ -39,7 +39,7 @@ export function AppHeader() {
           })}
         </nav>
 
-        <span className="ml-auto rounded-full bg-butter-soft px-3 py-1 text-xs font-semibold text-butter">
+        <span className="ml-auto rounded-[3px] border border-butter/40 bg-butter-soft px-2 py-0.5 text-xs font-semibold text-butter">
           Demo data
         </span>
       </div>

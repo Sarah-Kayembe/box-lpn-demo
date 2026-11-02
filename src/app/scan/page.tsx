@@ -112,7 +112,7 @@ export default function ScanPage() {
       <div className="card text-center">
         <video
           ref={videoRef}
-          className={`mx-auto aspect-video w-full rounded-xl bg-navy object-cover ${camera === "on" ? "" : "hidden"}`}
+          className={`mx-auto aspect-video w-full rounded-[4px] bg-navy object-cover ${camera === "on" ? "" : "hidden"}`}
           muted
           playsInline
         />
