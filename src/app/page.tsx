@@ -55,10 +55,8 @@ export default function Home() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((s, n) => (
           <div key={s.title} className="card">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-soft text-sm font-bold">
-              {n + 1}
-            </span>
-            <p className="mt-3 font-bold">{s.title}</p>
+            <span className="text-sm font-bold text-red-brand">Step {n + 1}</span>
+            <p className="mt-1 text-lg font-bold">{s.title}</p>
             <p className="mt-1 text-sm text-navy-soft">{s.text}</p>
           </div>
         ))}

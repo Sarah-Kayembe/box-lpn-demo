@@ -157,7 +157,7 @@ export default function PackPage() {
                   <p className="text-xs text-navy-soft">
                     {inv.sku} · {inv.fnsku} · {inv.quantity} on hand
                     {inv.product.requires_expiration && (
-                      <span className="ml-2 rounded-full bg-butter-soft px-2 py-0.5 font-semibold text-butter">
+                      <span className="ml-2 rounded-[3px] border border-butter/40 bg-butter-soft px-1.5 py-px font-semibold text-butter">
                         needs expiry
                       </span>
                     )}
@@ -182,7 +182,7 @@ export default function PackPage() {
           </div>
 
           {lines.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-dashed border-line bg-sky-wash p-8 text-center text-sm text-navy-soft">
+            <div className="mt-4 rounded-[4px] border border-dashed border-[#c5d3dc] bg-sky-wash p-8 text-center text-sm text-navy-soft">
               Nothing in the box yet.
             </div>
           ) : (
@@ -190,7 +190,7 @@ export default function PackPage() {
               {lines.map((l) => (
                 <li
                   key={l.sku}
-                  className={`rounded-xl border p-3 transition ${
+                  className={`rounded-[4px] border p-3 transition ${
                     flash === l.sku ? "border-sky-brand bg-sky-soft" : "border-line"
                   }`}
                 >
@@ -266,7 +266,7 @@ export default function PackPage() {
               {(["length", "width", "height"] as const).map((k) => (
                 <div key={k}>
                   <label className="label" htmlFor={k}>
-                    {k} (in)
+                    {{ length: "Length", width: "Width", height: "Height" }[k]} (in)
                   </label>
                   <input
                     id={k}

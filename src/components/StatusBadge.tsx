@@ -1,9 +1,9 @@
 import type { BoxTagStatus } from "@/lib/types";
 
 const styles: Record<BoxTagStatus, string> = {
-  packed: "bg-butter-soft text-butter",
-  stored: "bg-sky-soft text-navy",
-  shipped: "bg-mint-soft text-mint",
+  packed: "border-butter/50 bg-butter-soft text-butter",
+  stored: "border-sky-brand bg-sky-soft text-navy",
+  shipped: "border-mint/40 bg-mint-soft text-mint",
 };
 
 const labels: Record<BoxTagStatus, string> = {
@@ -14,7 +14,7 @@ const labels: Record<BoxTagStatus, string> = {
 
 export function StatusBadge({ status }: { status: BoxTagStatus }) {
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${styles[status]}`}>
+    <span className={`inline-flex rounded-[3px] border px-2 py-0.5 text-xs font-semibold ${styles[status]}`}>
       {labels[status]}
     </span>
   );

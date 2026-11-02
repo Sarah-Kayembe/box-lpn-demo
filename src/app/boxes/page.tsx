@@ -80,7 +80,7 @@ export default function BoxesPage() {
             <Link
               key={b.box_tag_id}
               href={`/boxes/${b.box_tag_id}`}
-              className="card block transition hover:-translate-y-0.5 hover:border-sky-brand"
+              className="card block transition hover:border-navy-soft"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-lg font-bold">{b.box_tag_id}</span>
