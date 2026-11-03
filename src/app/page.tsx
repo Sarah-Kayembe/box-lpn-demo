@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { useEffect, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
+import { IS_DEMO } from "@/lib/mode";
 import { formatDate, totalUnits } from "@/lib/format";
 import type { BoxTag } from "@/lib/types";
 
@@ -87,15 +88,17 @@ export default function Home() {
             </li>
           ))}
         </ul>
-        <button
-          className="mt-4 text-xs font-semibold text-navy-soft hover:text-navy"
-          onClick={async () => {
-            await api.resetDemo();
-            setBoxes(await api.listBoxTags());
-          }}
-        >
-          Reset demo data
-        </button>
+        {IS_DEMO && (
+          <button
+            className="mt-4 text-xs font-semibold text-navy-soft hover:text-navy"
+            onClick={async () => {
+              await api.resetDemo();
+              setBoxes(await api.listBoxTags());
+            }}
+          >
+            Reset demo data
+          </button>
+        )}
       </section>
     </div>
   );

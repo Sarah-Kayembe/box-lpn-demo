@@ -1,4 +1,5 @@
 import type { AzShipment, BoxTag, InventoryItem, Location, NewBoxTag, PackTemplate } from "../types";
+import { MODE } from "../mode";
 import { boxTagStore } from "./box-tag-store";
 import { liveScanPower } from "./live";
 import { mockScanPower } from "./mock";
@@ -12,9 +13,6 @@ export interface ScanPowerSource {
   /** Creates the shipment box and its items. Returns the new box_id. */
   addBoxToShipment(tag: BoxTag, shipment: AzShipment): Promise<string>;
 }
-
-export const MODE: "mock" | "live" =
-  process.env.NEXT_PUBLIC_BOXTAG_MODE === "live" ? "live" : "mock";
 
 const source: ScanPowerSource = MODE === "live" ? liveScanPower : mockScanPower;
 

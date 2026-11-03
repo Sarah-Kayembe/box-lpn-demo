@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api/client";
 import { normalizeBoxTagId } from "@/lib/api/box-tag-store";
+import { IS_DEMO } from "@/lib/mode";
 
 type Detector = { detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]> };
 type DetectorCtor = new (opts: { formats: string[] }) => Detector;
@@ -132,15 +133,17 @@ export default function ScanPage() {
         )}
       </div>
 
-      <p className="text-center text-xs text-navy-soft">
-        Try one of the demo boxes:{" "}
-        {["BT-000101", "BT-000102", "BT-000103"].map((id, n) => (
-          <button key={id} className="font-mono font-semibold text-navy underline-offset-2 hover:underline" onClick={() => open(id)}>
-            {id}
-            {n < 2 ? ", " : ""}
-          </button>
-        ))}
-      </p>
+      {IS_DEMO && (
+        <p className="text-center text-xs text-navy-soft">
+          Try one of the demo boxes:{" "}
+          {["BT-000101", "BT-000102", "BT-000103"].map((id, n) => (
+            <button key={id} className="font-mono font-semibold text-navy underline-offset-2 hover:underline" onClick={() => open(id)}>
+              {id}
+              {n < 2 ? ", " : ""}
+            </button>
+          ))}
+        </p>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { IS_DEMO } from "@/lib/mode";
 
 const links = [
   { href: "/", label: "Overview" },
@@ -39,10 +40,17 @@ export function AppHeader() {
           })}
         </nav>
 
-        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-butter/60 bg-butter-soft px-3 py-1 text-[13px] font-bold text-butter">
-          <span className="h-2 w-2 rounded-full bg-butter" aria-hidden="true" />
-          Demo data
-        </span>
+        {IS_DEMO ? (
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-butter/60 bg-butter-soft px-3 py-1 text-[13px] font-bold text-butter">
+            <span className="h-2 w-2 rounded-full bg-butter" aria-hidden="true" />
+            Demo data
+          </span>
+        ) : (
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-mint/50 bg-mint-soft px-3 py-1 text-[13px] font-bold text-mint">
+            <span className="h-2 w-2 rounded-full bg-mint" aria-hidden="true" />
+            Connected to ScanPower
+          </span>
+        )}
       </div>
     </header>
   );
