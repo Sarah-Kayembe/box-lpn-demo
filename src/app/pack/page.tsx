@@ -95,7 +95,7 @@ export default function PackPage() {
   const hint = useMemo(() => {
     if (!lines.length) return "Scan or search for an item to start packing.";
     if (missingExpiry.length) return `Add an expiration date for ${missingExpiry.map((l) => l.sku).join(", ")}.`;
-    return `${units} units across ${lines.length} SKU${lines.length > 1 ? "s" : ""}. Ready to seal.`;
+    return `${units} ${units === 1 ? "unit" : "units"} across ${lines.length} SKU${lines.length > 1 ? "s" : ""}. Ready to seal.`;
   }, [lines, missingExpiry, units]);
 
   async function seal() {
@@ -155,10 +155,25 @@ export default function PackPage() {
             autoComplete="off"
           />
           <ul className="mt-4 max-h-[460px] divide-y divide-line overflow-y-auto">
-            {results.map((inv) => (
-              <li key={inv.sku} className="flex items-center gap-3 py-3">
+            {results.map((inv) => {
+              const inBox = lines.find((l) => l.sku === inv.sku)?.quantity ?? 0;
+              return (
+              <li
+                key={inv.sku}
+                className={`flex items-center gap-3 border-l-4 py-3 pr-1 pl-3 transition ${
+                  inBox ? "border-l-mint bg-mint-soft" : "border-l-transparent"
+                }`}
+              >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{inv.product.title}</p>
+                  <p className="truncate text-sm font-semibold">
+                    {inv.product.title}
+                    {inBox > 0 && (
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-mint px-2 py-px align-middle text-xs font-bold text-white">
+                        <Icon name="check" size={12} />
+                        {inBox} in box
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-navy-soft">
                     {inv.sku} · {inv.fnsku} · {inv.quantity} on hand
                     {inv.product.requires_expiration && (
@@ -171,10 +186,11 @@ export default function PackPage() {
                 </div>
                 <button className="btn-ghost btn-sm" onClick={() => addItem(inv)}>
                   <Icon name="plus" size={16} />
-                  Add
+                  {inBox ? "Add 1" : "Add"}
                 </button>
               </li>
-            ))}
+              );
+            })}
             {results.length === 0 && (
               <li className="py-6 text-center text-sm text-navy-soft">No items match “{search}”.</li>
             )}
@@ -185,7 +201,9 @@ export default function PackPage() {
         <section className="card flex min-w-0 flex-col">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-bold">This box</h2>
-            <span className="text-sm text-navy-soft">{units} units</span>
+            <span className="text-sm text-navy-soft">
+              {units} {units === 1 ? "unit" : "units"}
+            </span>
           </div>
 
           {lines.length === 0 ? (
@@ -197,8 +215,8 @@ export default function PackPage() {
               {lines.map((l) => (
                 <li
                   key={l.sku}
-                  className={`rounded-[4px] border p-3 transition ${
-                    flash === l.sku ? "border-sky-brand bg-sky-soft" : "border-line"
+                  className={`rounded-[4px] border border-l-4 border-mint/30 border-l-mint p-3 transition-colors duration-500 ${
+                    flash === l.sku ? "bg-[#d4ead6]" : "bg-mint-soft"
                   }`}
                 >
                   <div className="flex items-start gap-3">
