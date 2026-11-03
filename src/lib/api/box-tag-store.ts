@@ -1,4 +1,5 @@
 import { seedBoxTags } from "../mock-data";
+import { IS_DEMO, MODE } from "../mode";
 import type { AzShipment, BoxTag, Location, NewBoxTag } from "../types";
 
 /*
@@ -7,7 +8,8 @@ import type { AzShipment, BoxTag, Location, NewBoxTag } from "../types";
  * /v3/box-tag (see README).
  */
 
-const KEY = "boxtag.boxes.v1";
+// Separate storage per mode, so sample boxes never mix with real ones.
+const KEY = `boxtag.boxes.v1.${MODE}`;
 
 function read(): BoxTag[] {
   if (typeof window === "undefined") return [];
@@ -17,7 +19,8 @@ function read(): BoxTag[] {
   } catch {
     /* storage unavailable or corrupted, fall back to seed data */
   }
-  const seeded = seedBoxTags();
+  // Starter boxes are sample data, so they only appear in demo mode.
+  const seeded = IS_DEMO ? seedBoxTags() : [];
   write(seeded);
   return seeded;
 }
@@ -76,7 +79,7 @@ export const boxTagStore = {
       location_id: null,
       shipment_id: null,
       packed_at: now(),
-      packed_by: "Demo user",
+      packed_by: IS_DEMO ? "Demo user" : "",
       history: [{ at: now(), type: "packed", note: `Packed ${units} units` }],
     };
     write([...boxes, tag]);
@@ -125,6 +128,6 @@ export const boxTagStore = {
 
   async reset() {
     memory = null;
-    write(seedBoxTags());
+    write(IS_DEMO ? seedBoxTags() : []);
   },
 };

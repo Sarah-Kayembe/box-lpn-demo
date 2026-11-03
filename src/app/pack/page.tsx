@@ -74,6 +74,10 @@ export default function PackPage() {
     }
   }
 
+  function removeLine(sku: string) {
+    setLines((current) => current.filter((l) => l.sku !== sku));
+  }
+
   function updateLine(sku: string, change: Partial<Line>) {
     setLines((current) => current.map((l) => (l.sku === sku ? { ...l, ...change } : l)));
   }
@@ -206,12 +210,16 @@ export default function PackPage() {
                     </div>
                     <Stepper
                       value={l.quantity}
-                      onChange={(q) =>
-                        q <= 0
-                          ? setLines((c) => c.filter((x) => x.sku !== l.sku))
-                          : updateLine(l.sku, { quantity: q })
-                      }
+                      onChange={(q) => (q <= 0 ? removeLine(l.sku) : updateLine(l.sku, { quantity: q }))}
                     />
+                    <button
+                      className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-transparent text-navy-soft transition hover:border-red-brand/40 hover:bg-red-soft hover:text-red-brand"
+                      onClick={() => removeLine(l.sku)}
+                      aria-label={`Remove ${l.title} from the box`}
+                      title="Remove from box"
+                    >
+                      <Icon name="trash" size={18} />
+                    </button>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <div>

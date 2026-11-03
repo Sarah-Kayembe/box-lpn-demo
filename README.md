@@ -58,7 +58,7 @@ Screens never fetch anything directly. They call `api` from `lib/api/client.ts`,
 
 **A ScanPower source** for inventory, locations, pack templates, open shipments, and adding a box to a shipment. There are two implementations of the same `ScanPowerSource` interface, chosen by `NEXT_PUBLIC_BOXTAG_MODE`.
 
-- `mock.ts` serves sample data shaped exactly like the v3 responses, with a short delay so loading states are real.
+- `mock.ts` serves sample data shaped exactly like the v3 responses, with a short delay so loading states are real. Anything that exists only for the demo, like the three starter boxes, the "Demo data" tag and the demo box shortcuts on the scan screen, appears only in this mode, and each mode keeps its boxes in separate storage.
 - `live.ts` calls `/api/scanpower/...`, a Next.js route that logs in with `GET /v3/auth` using Basic auth, caches the bearer token until just before it expires, and forwards requests. Only the five paths BoxTag needs are allowed through, and credentials stay on the server.
 
 **The box store** (`box-tag-store.ts`) keeps BoxTag records, generates sequential IDs (`BT-000104`), and appends history events. ScanPower has no endpoint for a box that isn't in a shipment yet, so this demo keeps the records in the browser's local storage, with a fallback to memory if storage is unavailable.
