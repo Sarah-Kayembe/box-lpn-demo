@@ -161,14 +161,14 @@ export default function PackPage() {
               <li
                 key={inv.sku}
                 className={`flex items-center gap-3 border-l-4 py-3 pr-1 pl-3 transition ${
-                  inBox ? "border-l-mint bg-mint-soft" : "border-l-transparent"
+                  inBox ? "border-l-navy bg-sky-soft" : "border-l-transparent"
                 }`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">
                     {inv.product.title}
                     {inBox > 0 && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-mint px-2 py-px align-middle text-xs font-bold text-white">
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-navy px-2 py-px align-middle text-xs font-bold text-white">
                         <Icon name="check" size={12} />
                         {inBox} in box
                       </span>
@@ -215,8 +215,8 @@ export default function PackPage() {
               {lines.map((l) => (
                 <li
                   key={l.sku}
-                  className={`rounded-[4px] border border-l-4 border-mint/30 border-l-mint p-3 transition-colors duration-500 ${
-                    flash === l.sku ? "bg-[#d4ead6]" : "bg-mint-soft"
+                  className={`rounded-[4px] border border-l-4 border-sky-brand border-l-navy p-3 transition-colors duration-500 ${
+                    flash === l.sku ? "bg-sky-brand/60" : "bg-sky-soft"
                   }`}
                 >
                   <div className="flex items-start gap-3">
