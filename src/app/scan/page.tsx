@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Alert } from "@/components/Alert";
 import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api/client";
 import { normalizeBoxTagId } from "@/lib/api/box-tag-store";
@@ -9,6 +10,17 @@ import { IS_DEMO } from "@/lib/mode";
 
 type Detector = { detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]> };
 type DetectorCtor = new (opts: { formats: string[] }) => Detector;
+
+type CameraProblem = "blocked" | "busy" | "missing" | "other";
+
+/** Turns a getUserMedia error into something a person can act on. */
+function problemFrom(error: unknown): CameraProblem {
+  const name = error instanceof DOMException ? error.name : "";
+  if (name === "NotAllowedError" || name === "SecurityError") return "blocked";
+  if (name === "NotReadableError" || name === "AbortError") return "busy";
+  if (name === "NotFoundError" || name === "OverconstrainedError") return "missing";
+  return "other";
+}
 
 /** Pulls a box ID out of a scan, whether it's the Code 128 ID or the QR code URL. */
 function boxIdFrom(raw: string) {
@@ -23,11 +35,46 @@ export default function ScanPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [camera, setCamera] = useState<"off" | "on" | "unsupported">("off");
+  const [permission, setPermission] = useState<PermissionState | null>(null);
+  const [problem, setProblem] = useState<CameraProblem | null>(null);
+  const [isMac, setIsMac] = useState(false);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
     if (!("BarcodeDetector" in window)) setCamera("unsupported");
+    setIsMac(/Mac/i.test(navigator.userAgent));
+
+    // Find out ahead of time whether the browser will ask, has said yes, or is blocking the camera
+    let status: PermissionStatus | null = null;
+    const update = () => {
+      if (!status) return;
+      setPermission(status.state);
+      if (status.state === "denied") setProblem("blocked");
+      if (status.state === "granted") setProblem((p) => (p === "blocked" ? null : p));
+    };
+    navigator.permissions
+      ?.query({ name: "camera" as PermissionName })
+      .then((s) => {
+        status = s;
+        update();
+        s.addEventListener("change", update);
+      })
+      .catch(() => {
+        /* some browsers can't report camera permission; the error message covers it */
+      });
+    return () => {
+      status?.removeEventListener("change", update);
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+    };
   }, []);
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCamera("off");
+  }
 
   async function open(raw: string) {
     const id = boxIdFrom(raw);
@@ -45,8 +92,11 @@ export default function ScanPage() {
   async function startCamera() {
     const Ctor = (window as unknown as { BarcodeDetector?: DetectorCtor }).BarcodeDetector;
     if (!Ctor || !videoRef.current) return;
+    setProblem(null);
+    setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      streamRef.current = stream;
       const video = videoRef.current;
       video.srcObject = stream;
       await video.play();
@@ -56,17 +106,15 @@ export default function ScanPage() {
         if (!video.srcObject) return;
         const found = await detector.detect(video).catch(() => []);
         if (found[0]) {
-          stream.getTracks().forEach((t) => t.stop());
-          video.srcObject = null;
-          setCamera("off");
+          stopCamera();
           open(found[0].rawValue);
           return;
         }
         requestAnimationFrame(tick);
       };
       tick();
-    } catch {
-      setError("Couldn’t open the camera. You can still type the box ID or use a scanner.");
+    } catch (e) {
+      setProblem(problemFrom(e));
     }
   }
 
@@ -119,11 +167,37 @@ export default function ScanPage() {
           muted
           playsInline
         />
-        {camera === "off" && (
-          <button className="btn-ghost" onClick={startCamera}>
-            <Icon name="camera" />
-            Use camera instead
+        {camera === "on" && (
+          <button className="btn-ghost mt-3" onClick={stopCamera}>
+            Stop camera
           </button>
+        )}
+        {camera === "off" && !problem && (
+          <>
+            <button className="btn-ghost" onClick={startCamera}>
+              <Icon name="camera" />
+              Use camera instead
+            </button>
+            {permission !== "granted" && (
+              <p className="mt-2 text-sm text-navy-soft">
+                Your browser will ask to use your camera. Choose <span className="font-bold">Allow</span>.
+              </p>
+            )}
+          </>
+        )}
+        {camera === "off" && problem && (
+          <div className="text-left">
+            <CameraHelp problem={problem} isMac={isMac} />
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <button className="btn-primary" onClick={startCamera}>
+                <Icon name="camera" />
+                Try again
+              </button>
+              <button className="btn-ghost" onClick={() => inputRef.current?.focus()}>
+                Type the ID instead
+              </button>
+            </div>
+          </div>
         )}
         {camera === "unsupported" && (
           <p className="text-sm text-navy-soft">
@@ -145,5 +219,49 @@ export default function ScanPage() {
         </p>
       )}
     </div>
+  );
+}
+
+/** Plain steps for each kind of camera problem. */
+function CameraHelp({ problem, isMac }: { problem: CameraProblem; isMac: boolean }) {
+  if (problem === "blocked") {
+    return (
+      <Alert tone="warning" title="The camera is blocked for this site">
+        <ol className="mt-1 list-decimal space-y-1 pl-5">
+          <li>
+            Click the <span className="font-bold">camera</span> or <span className="font-bold">lock</span> icon at the
+            left of the address bar.
+          </li>
+          <li>
+            Set Camera to <span className="font-bold">Allow</span>, then press Try again.
+          </li>
+          {isMac && (
+            <li>
+              Still blocked? On your Mac, open System Settings, then Privacy &amp; Security, then Camera, and turn on
+              your browser. You may need to restart the browser after.
+            </li>
+          )}
+        </ol>
+      </Alert>
+    );
+  }
+  if (problem === "busy") {
+    return (
+      <Alert tone="warning" title="Another app is using the camera">
+        Close apps like Zoom, Teams or FaceTime that might have the camera open, then press Try again.
+      </Alert>
+    );
+  }
+  if (problem === "missing") {
+    return (
+      <Alert tone="warning" title="No camera was found">
+        This device doesn’t seem to have a camera. Type the box ID or use a barcode scanner instead.
+      </Alert>
+    );
+  }
+  return (
+    <Alert tone="warning" title="The camera didn’t start">
+      Press Try again. If it still doesn’t work, type the box ID or use a barcode scanner.
+    </Alert>
   );
 }
