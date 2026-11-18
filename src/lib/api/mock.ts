@@ -11,7 +11,7 @@ export const mockScanPower: ScanPowerSource = {
     const q = search.trim().toLowerCase();
     if (!q) return inventory;
     return inventory.filter((i) =>
-      [i.sku, i.fnsku ?? "", i.product.title].some((v) => v.toLowerCase().includes(q)),
+      [i.sku, i.fnsku ?? "", i.product.upc ?? "", i.product.title].some((v) => v.toLowerCase().includes(q)),
     );
   },
 

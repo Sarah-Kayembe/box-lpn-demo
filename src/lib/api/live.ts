@@ -26,7 +26,11 @@ const SHIP_FROM_ID = process.env.NEXT_PUBLIC_SCANPOWER_SHIP_FROM_ID ?? "";
 export const liveScanPower: ScanPowerSource = {
   async listInventory(search = "") {
     const params = new URLSearchParams({ limit: "100", with_data: "true" });
-    if (search) params.set("search", search);
+    if (search) {
+      params.set("search", search);
+      // A run of 12 to 14 digits is a scanned UPC or GTIN
+      if (/^\d{12,14}$/.test(search.trim())) params.set("search_by", "upc");
+    }
     const data = await call<{ inventory: { sku: string; items: InventoryItem[] }[] }>(
       `/v3/inventory?${params}`,
     );

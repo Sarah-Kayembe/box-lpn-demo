@@ -80,7 +80,11 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="font-mono text-3xl font-bold">{box.box_tag_id}</h1>
         <StatusBadge status={box.status} />
-        <Link href={`/boxes/${box.box_tag_id}/label`} className="btn-ghost ml-auto">
+        <Link href={`/labels/fnsku?box=${box.box_tag_id}`} className="btn-ghost ml-auto">
+          <Icon name="printer" />
+          FNSKU labels
+        </Link>
+        <Link href={`/boxes/${box.box_tag_id}/label`} className="btn-ghost">
           <Icon name="printer" />
           {box.history.some((h) => h.type === "label_printed") ? "Reprint label" : "Print label"}
         </Link>
