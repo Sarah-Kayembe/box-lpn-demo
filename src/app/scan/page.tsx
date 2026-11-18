@@ -6,10 +6,9 @@ import { Alert } from "@/components/Alert";
 import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api/client";
 import { normalizeBoxTagId } from "@/lib/api/box-tag-store";
+import { canUseCamera, getBarcodeReader } from "@/lib/barcode-reader";
 import { IS_DEMO } from "@/lib/mode";
 
-type Detector = { detect(source: HTMLVideoElement): Promise<{ rawValue: string }[]> };
-type DetectorCtor = new (opts: { formats: string[] }) => Detector;
 
 type CameraProblem = "blocked" | "busy" | "missing" | "other";
 
@@ -42,7 +41,7 @@ export default function ScanPage() {
 
   useEffect(() => {
     inputRef.current?.focus();
-    if (!("BarcodeDetector" in window)) setCamera("unsupported");
+    if (!canUseCamera()) setCamera("unsupported");
     setIsMac(/Mac/i.test(navigator.userAgent));
 
     // Find out ahead of time whether the browser will ask, has said yes, or is blocking the camera
@@ -90,8 +89,7 @@ export default function ScanPage() {
   }
 
   async function startCamera() {
-    const Ctor = (window as unknown as { BarcodeDetector?: DetectorCtor }).BarcodeDetector;
-    if (!Ctor || !videoRef.current) return;
+    if (!videoRef.current) return;
     setProblem(null);
     setError(null);
     try {
@@ -101,16 +99,17 @@ export default function ScanPage() {
       video.srcObject = stream;
       await video.play();
       setCamera("on");
-      const detector = new Ctor({ formats: ["code_128", "qr_code"] });
+      const reader = await getBarcodeReader();
+      // Check a few frames a second, which is plenty for a label held in front of the camera
       const tick = async () => {
         if (!video.srcObject) return;
-        const found = await detector.detect(video).catch(() => []);
+        const found = await reader.detect(video).catch(() => []);
         if (found[0]) {
           stopCamera();
           open(found[0].rawValue);
           return;
         }
-        requestAnimationFrame(tick);
+        setTimeout(tick, 150);
       };
       tick();
     } catch (e) {
@@ -201,8 +200,7 @@ export default function ScanPage() {
         )}
         {camera === "unsupported" && (
           <p className="text-sm text-navy-soft">
-            Camera scanning works in Chrome on Android and desktop. In this browser, use a scanner
-            or type the ID.
+            This browser can’t use a camera. Use a barcode scanner or type the ID.
           </p>
         )}
       </div>
