@@ -20,6 +20,9 @@ export interface InventoryItem {
   product: {
     title: string;
     asin?: string;
+    upc?: string | null;
+    /** Product image URLs, first one is the main image */
+    images?: string[] | null;
     requires_expiration?: boolean;
   };
 }
@@ -74,6 +77,8 @@ export interface BoxTagItem {
   /** ISO date (YYYY-MM-DD) or null */
   expires: string | null;
   manufacturing_lot_code: string | null;
+  /** Main product image, copied from inventory when packed */
+  image_url?: string | null;
 }
 
 export interface BoxTagEvent {

@@ -149,7 +149,11 @@ function item(
     fulfillment_channel: "fba",
     quantity,
     condition: "New",
-    product: { title, requires_expiration: requiresExpiration },
+    product: {
+      title,
+      requires_expiration: requiresExpiration,
+      images: [`/products/${sku.toLowerCase()}.svg`],
+    },
   };
 }
 
@@ -179,5 +183,6 @@ function boxItem(sku: string, quantity: number, expires: string | null = null, l
     quantity,
     expires,
     manufacturing_lot_code: lot,
+    image_url: inv.product.images?.[0] ?? null,
   };
 }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
+import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
 import type { BoxTagItem, InventoryItem, PackTemplate, UnitOfMeasurement } from "@/lib/types";
 
@@ -53,6 +54,7 @@ export default function PackPage() {
           quantity: 1,
           expires: null,
           manufacturing_lot_code: null,
+          image_url: inv.product.images?.[0] ?? null,
           requiresExpiration: Boolean(inv.product.requires_expiration),
         },
       ];
@@ -111,6 +113,7 @@ export default function PackPage() {
           quantity: l.quantity,
           expires: l.expires,
           manufacturing_lot_code: l.manufacturing_lot_code,
+          image_url: l.image_url ?? null,
         })),
         pack_template_id: templateId || null,
         length: num(dims.length),
@@ -164,6 +167,7 @@ export default function PackPage() {
                   inBox ? "border-l-navy bg-sky-soft" : "border-l-transparent"
                 }`}
               >
+                <ProductThumb src={inv.product.images?.[0]} title={inv.product.title} size={44} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">
                     {inv.product.title}
@@ -220,6 +224,7 @@ export default function PackPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
+                    <ProductThumb src={l.image_url} title={l.title} size={40} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold">{l.title}</p>
                       <p className="text-xs text-navy-soft">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Alert } from "@/components/Alert";
 import { use, useEffect, useState } from "react";
+import { ProductThumb } from "@/components/ProductThumb";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
 import { insertAzBoxBody, mergeAzBoxItemsBody } from "@/lib/api/payloads";
@@ -119,11 +120,16 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                   {box.items.map((i) => (
                     <tr key={i.sku} className="border-b border-line last:border-0">
                       <td className="py-2.5">
-                        <p className="font-medium">{i.title}</p>
-                        <p className="text-xs text-navy-soft">
-                          {i.sku}
-                          {i.manufacturing_lot_code && ` · Lot ${i.manufacturing_lot_code}`}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          <ProductThumb src={i.image_url} title={i.title} size={40} />
+                          <div>
+                            <p className="font-medium">{i.title}</p>
+                            <p className="text-xs text-navy-soft">
+                              {i.sku}
+                              {i.manufacturing_lot_code && ` · Lot ${i.manufacturing_lot_code}`}
+                            </p>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-2.5 font-mono text-xs">{i.fnsku}</td>
                       <td className="py-2.5 text-right font-semibold">{i.quantity}</td>
