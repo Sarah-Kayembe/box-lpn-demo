@@ -65,11 +65,11 @@ export default function PackPage() {
     setTimeout(() => setFlash(null), 600);
   }
 
-  /** Scanners type the code and press Enter. An exact SKU or FNSKU match adds one unit. */
+  /** Scanners type the code and press Enter. An exact UPC, FNSKU or SKU match adds one unit. */
   function onScan(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter") return;
     const code = search.trim().toUpperCase();
-    const exact = results.find((i) => i.sku === code || i.fnsku === code);
+    const exact = results.find((i) => i.sku === code || i.fnsku === code || i.product.upc === code);
     const only = results.length === 1 ? results[0] : null;
     const match = exact ?? only;
     if (match) {
@@ -187,7 +187,7 @@ export default function PackPage() {
             id="scan"
             ref={searchRef}
             className="input"
-            placeholder="Scan an FNSKU or type a SKU or product name"
+            placeholder="Scan a UPC or FNSKU, or type a SKU or product name"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={onScan}
@@ -215,7 +215,8 @@ export default function PackPage() {
                     )}
                   </p>
                   <p className="text-xs text-navy-soft">
-                    {inv.sku} · {inv.fnsku} · {inv.quantity} on hand
+                    {inv.sku} · {inv.fnsku}
+                    {inv.product.upc && ` · UPC ${inv.product.upc}`} · {inv.quantity} on hand
                     {inv.product.requires_expiration && (
                       <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-butter/60 bg-butter-soft px-2 py-px font-bold text-butter">
                         <span className="h-1.5 w-1.5 rounded-full bg-butter" />

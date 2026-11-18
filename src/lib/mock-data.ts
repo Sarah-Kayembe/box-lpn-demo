@@ -5,18 +5,18 @@ import type { AzShipment, BoxTag, InventoryItem, Location, PackTemplate, PackTem
 export const SHIP_FROM_ID = "sf-portland-01";
 
 export const inventory: InventoryItem[] = [
-  item("BTL-32-SAGE", "X00A1B2C3D", "Insulated Water Bottle 32 oz, Sage", 48),
-  item("BTL-32-BLUSH", "X00A1B2C3E", "Insulated Water Bottle 32 oz, Blush", 36),
-  item("TEA-GRN-20", "X00B7K9P2Q", "Organic Green Tea, 20 Bags", 120, true),
-  item("GUM-VITC-60", "X00C4M8N1R", "Vitamin C Gummies, 60 Count", 72, true),
-  item("PUZ-1000-LH", "X00D2F6G8H", "Lighthouse 1000 Piece Jigsaw Puzzle", 24),
-  item("CRY-24-PAST", "X00E5T3Y7U", "Pastel Crayons, 24 Pack", 96),
-  item("MUG-CER-12", "X00F9W1Q4E", "Ceramic Coffee Mug 12 oz, Speckled", 40),
-  item("SOAP-LAV-3", "X00G6Z2X5C", "Lavender Bar Soap, 3 Pack", 60, true),
-  item("CBL-USBC-6", "X00H8V4B7N", "Braided USB-C Cable, 6 ft", 150),
-  item("NBK-A5-DOT", "X00J3L5K9M", "Dotted A5 Notebook, Hardcover", 80),
-  item("SNK-ALM-12", "X00K7P1O3I", "Roasted Almond Snack Packs, 12 Count", 54, true),
-  item("TOY-DINO-6", "X00L2U8Y6T", "Wind-Up Dinosaur Toys, 6 Pack", 30),
+  item("BTL-32-SAGE", "X00A1B2C3D", "Insulated Water Bottle 32 oz, Sage", 48, false, "850600010011"),
+  item("BTL-32-BLUSH", "X00A1B2C3E", "Insulated Water Bottle 32 oz, Blush", 36, false, "850600010028"),
+  item("TEA-GRN-20", "X00B7K9P2Q", "Organic Green Tea, 20 Bags", 120, true, "850600010035"),
+  item("GUM-VITC-60", "X00C4M8N1R", "Vitamin C Gummies, 60 Count", 72, true, "850600010042"),
+  item("PUZ-1000-LH", "X00D2F6G8H", "Lighthouse 1000 Piece Jigsaw Puzzle", 24, false, "850600010059"),
+  item("CRY-24-PAST", "X00E5T3Y7U", "Pastel Crayons, 24 Pack", 96, false, "850600010066"),
+  item("MUG-CER-12", "X00F9W1Q4E", "Ceramic Coffee Mug 12 oz, Speckled", 40, false, "850600010073"),
+  item("SOAP-LAV-3", "X00G6Z2X5C", "Lavender Bar Soap, 3 Pack", 60, true, "850600010080"),
+  item("CBL-USBC-6", "X00H8V4B7N", "Braided USB-C Cable, 6 ft", 150, false, "850600010097"),
+  item("NBK-A5-DOT", "X00J3L5K9M", "Dotted A5 Notebook, Hardcover", 80, false, "850600010103"),
+  item("SNK-ALM-12", "X00K7P1O3I", "Roasted Almond Snack Packs, 12 Count", 54, true, "850600010110"),
+  item("TOY-DINO-6", "X00L2U8Y6T", "Wind-Up Dinosaur Toys, 6 Pack", 30, false, "850600010127"),
 ];
 
 export const locations: Location[] = [
@@ -151,6 +151,7 @@ function item(
   title: string,
   quantity: number,
   requiresExpiration = false,
+  upc: string | null = null,
 ): InventoryItem {
   return {
     sku,
@@ -161,6 +162,7 @@ function item(
     condition: "New",
     product: {
       title,
+      upc,
       requires_expiration: requiresExpiration,
       images: [`/products/${sku.toLowerCase()}.svg`],
     },
