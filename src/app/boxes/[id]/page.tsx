@@ -7,9 +7,14 @@ import { use, useEffect, useState } from "react";
 import { ProductThumb } from "@/components/ProductThumb";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
-import { insertAzBoxBody, mergeAzBoxItemsBody } from "@/lib/api/payloads";
+import {
+  insertAzBoxBody,
+  locationChangeCalls,
+  mergeAzBoxItemsBody,
+  removeFromShelfCalls,
+} from "@/lib/api/payloads";
 import { earliestExpiry, formatDate, formatDims, totalUnits } from "@/lib/format";
-import type { AzShipment } from "@/lib/types";
+import type { AzShipment, LocationItem } from "@/lib/types";
 import { useBoxTag } from "@/lib/useBoxTag";
 
 export default function BoxPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +26,15 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
   const [busy, setBusy] = useState<"store" | "ship" | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; title: string; text: string } | null>(null);
   const [showPayload, setShowPayload] = useState(false);
+  const [showLocationCalls, setShowLocationCalls] = useState(false);
+  const [shelf, setShelf] = useState<LocationItem[] | null>(null);
+  const shelfId = box?.status === "shipped" ? null : (box?.location_id ?? null);
+
+  // What ScanPower has on this box's shelf, refreshed whenever the box moves
+  useEffect(() => {
+    if (!shelfId) return setShelf(null);
+    api.listLocationItems(shelfId).then(setShelf).catch(() => setShelf(null));
+  }, [shelfId, box?.history.length]);
 
   useEffect(() => {
     api.listOpenShipments().then(setShipments);
@@ -49,7 +63,11 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
       const updated = await api.putAway(box.box_tag_id, loc);
       setBox(updated);
       setLocationId("");
-      setMessage({ tone: "ok", title: "Box put away", text: `It’s now at ${loc.location_name}.` });
+      setMessage({
+        tone: "ok",
+        title: box.location_id ? `Moved to ${loc.location_name}` : `Put away at ${loc.location_name}`,
+        text: `ScanPower’s location inventory was updated for all ${box.items.length} SKUs in the box.`,
+      });
     } catch (e) {
       setMessage({ tone: "error", title: "Couldn’t save the location", text: e instanceof Error ? e.message : "Please try again." });
     } finally {
@@ -66,7 +84,9 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
       setMessage({
         tone: "ok",
         title: `Added to ${shipment.shipment_id}`,
-        text: `All ${totalUnits(updated)} units went in without unpacking the box.`,
+        text: `All ${totalUnits(updated)} units went in without unpacking the box${
+          box.location_id ? `, and they were taken off ${locationName(box.location_id)} in ScanPower` : ""
+        }.`,
       });
     } catch (e) {
       setMessage({ tone: "error", title: "Couldn’t add the box", text: e instanceof Error ? e.message : "Please try again." });
@@ -210,6 +230,42 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                     {busy === "store" ? "Saving…" : "Save"}
                   </button>
                 </div>
+                <p className="mt-2 text-sm text-navy-soft">
+                  Saving also updates ScanPower’s location inventory for each SKU in the box.
+                </p>
+                {locationId && (
+                  <div className="mt-3">
+                    <button
+                      className="text-sm font-semibold text-navy-soft underline-offset-2 hover:underline"
+                      onClick={() => setShowLocationCalls((v) => !v)}
+                    >
+                      {showLocationCalls ? "Hide" : "Show"} the ScanPower API calls this makes
+                    </button>
+                    {showLocationCalls && (
+                      <div className="mt-2 space-y-2 text-xs">
+                        {locationChangeCalls(box, locationId).map((c, n) => (
+                          <Payload key={n} title={`${n + 1}. ${c.method} ${c.path}`} body={c.body} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {shelf && box.location_id && (
+                  <div className="mt-5 border-t border-line pt-4">
+                    <p className="text-sm font-bold">On {locationName(box.location_id)} in ScanPower</p>
+                    <p className="text-xs text-navy-soft">Every box on this shelf, counted by SKU.</p>
+                    <ul className="mt-2 divide-y divide-line text-sm">
+                      {shelf.map((row) => (
+                        <li key={row.sku} className="flex justify-between py-1.5">
+                          <span className="font-mono text-xs">{row.sku}</span>
+                          <span className="font-semibold">{row.fulfillable}</span>
+                        </li>
+                      ))}
+                      {shelf.length === 0 && <li className="py-1.5 text-navy-soft">Nothing recorded yet.</li>}
+                    </ul>
+                  </div>
+                )}
               </>
             )}
           </section>
@@ -258,6 +314,10 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                         title="2. PATCH /v3/az-box/items"
                         body={mergeAzBoxItemsBody(box, "<box_id from step 1>")}
                       />
+                      {box.location_id &&
+                        removeFromShelfCalls(box, box.location_id).map((c, n) => (
+                          <Payload key={n} title={`${n + 3}. ${c.method} ${c.path} (take off the shelf)`} body={c.body} />
+                        ))}
                     </div>
                   )}
                 </div>
