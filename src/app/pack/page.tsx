@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert } from "@/components/Alert";
 import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
@@ -23,6 +24,7 @@ export default function PackPage() {
   const [weight, setWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [flash, setFlash] = useState<string | null>(null);
+  const [templateNote, setTemplateNote] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,10 +86,44 @@ export default function PackPage() {
     setLines((current) => current.map((l) => (l.sku === sku ? { ...l, ...change } : l)));
   }
 
-  function chooseTemplate(id: string) {
+  /** Templates set the box size and weight, and can also fill the box with their SKUs. */
+  async function chooseTemplate(id: string) {
     setTemplateId(id);
+    setTemplateNote(null);
     const t = templates.find((x) => x.pack_template_id === id);
-    if (t) setDims({ length: String(t.length), width: String(t.width), height: String(t.height) });
+    if (!t) return;
+    setDims({ length: String(t.length), width: String(t.width), height: String(t.height) });
+    if (t.weight) setWeight(String(t.weight));
+
+    const items = await api.listPackTemplateItems(id);
+    if (!items.length) return;
+    const all = await api.listInventory();
+    setLines((current) => {
+      const next = [...current];
+      for (const ti of items) {
+        const existing = next.find((l) => l.sku === ti.sku);
+        if (existing) {
+          existing.quantity += ti.quantity;
+          continue;
+        }
+        const inv = all.find((i) => i.sku === ti.sku);
+        next.push({
+          sku: ti.sku,
+          fnsku: inv?.fnsku ?? null,
+          title: inv?.product.title ?? ti.sku,
+          quantity: ti.quantity,
+          expires: null,
+          manufacturing_lot_code: null,
+          image_url: inv?.product.images?.[0] ?? null,
+          requiresExpiration: Boolean(inv?.product.requires_expiration),
+        });
+      }
+      return next.map((l) => ({ ...l }));
+    });
+    const units = items.reduce((sum, i) => sum + i.quantity, 0);
+    setTemplateNote(
+      `Added ${units} units from “${t.pack_template_name}”. Adjust the quantities if this box is different.`,
+    );
   }
 
   const units = lines.reduce((s, l) => s + l.quantity, 0);
@@ -210,6 +246,36 @@ export default function PackPage() {
             </span>
           </div>
 
+          <div className="mt-3">
+            <label className="label" htmlFor="template">
+              Pack template
+            </label>
+            <select
+              id="template"
+              className="input"
+              value={templateId}
+              onChange={(e) => chooseTemplate(e.target.value)}
+            >
+              <option value="">None, I’ll pack it myself (custom size)</option>
+              {templates.map((t) => (
+                <option key={t.pack_template_id} value={t.pack_template_id}>
+                  {t.pack_template_name} ({t.length} × {t.width} × {t.height} in
+                  {t.weight ? `, ${t.weight} lb` : ""})
+                </option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-sm text-navy-soft">
+              A template sets the box size and weight, and fills in its SKUs if it has any.
+            </p>
+          </div>
+          {templateNote && (
+            <div className="mt-3">
+              <Alert tone="info" title="Template applied" onClose={() => setTemplateNote(null)}>
+                {templateNote}
+              </Alert>
+            </div>
+          )}
+
           {lines.length === 0 ? (
             <div className="mt-4 rounded-[4px] border border-dashed border-[#c5d3dc] bg-sky-wash p-8 text-center text-sm text-navy-soft">
               Nothing in the box yet.
@@ -278,24 +344,6 @@ export default function PackPage() {
           )}
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="label" htmlFor="template">
-                Box size
-              </label>
-              <select
-                id="template"
-                className="input"
-                value={templateId}
-                onChange={(e) => chooseTemplate(e.target.value)}
-              >
-                <option value="">Custom size</option>
-                {templates.map((t) => (
-                  <option key={t.pack_template_id} value={t.pack_template_id}>
-                    {t.pack_template_name}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div className="grid grid-cols-3 gap-2 sm:col-span-2">
               {(["length", "width", "height"] as const).map((k) => (
                 <div key={k}>

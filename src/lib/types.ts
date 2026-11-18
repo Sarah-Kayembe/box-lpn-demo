@@ -47,6 +47,13 @@ export interface PackTemplate {
   unit_of_weight: UnitOfWeight | null;
 }
 
+/** GET /v3/pack-template/{pack_template_id}/items  ->  pack_template_items[] */
+export interface PackTemplateItem {
+  pack_template_id: string;
+  sku: string;
+  quantity: number;
+}
+
 /** GET /v3/az-shipment  ->  az_shipments[] (trimmed) */
 export interface AzShipment {
   shipment_id: string;
