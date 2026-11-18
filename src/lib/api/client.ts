@@ -1,4 +1,12 @@
-import type { AzShipment, BoxTag, InventoryItem, Location, NewBoxTag, PackTemplate } from "../types";
+import type {
+  AzShipment,
+  BoxTag,
+  InventoryItem,
+  Location,
+  NewBoxTag,
+  PackTemplate,
+  PackTemplateItem,
+} from "../types";
 import { MODE } from "../mode";
 import { boxTagStore } from "./box-tag-store";
 import { liveScanPower } from "./live";
@@ -9,6 +17,7 @@ export interface ScanPowerSource {
   listInventory(search?: string): Promise<InventoryItem[]>;
   listLocations(): Promise<Location[]>;
   listPackTemplates(): Promise<PackTemplate[]>;
+  listPackTemplateItems(packTemplateId: string): Promise<PackTemplateItem[]>;
   listOpenShipments(): Promise<AzShipment[]>;
   /** Creates the shipment box and its items. Returns the new box_id. */
   addBoxToShipment(tag: BoxTag, shipment: AzShipment): Promise<string>;
@@ -43,6 +52,7 @@ function bind(s: ScanPowerSource): ScanPowerSource {
     listInventory: s.listInventory.bind(s),
     listLocations: s.listLocations.bind(s),
     listPackTemplates: s.listPackTemplates.bind(s),
+    listPackTemplateItems: s.listPackTemplateItems.bind(s),
     listOpenShipments: s.listOpenShipments.bind(s),
     addBoxToShipment: s.addBoxToShipment.bind(s),
   };

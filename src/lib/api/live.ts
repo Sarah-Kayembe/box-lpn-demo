@@ -1,4 +1,4 @@
-import type { AzShipment, InventoryItem, Location, PackTemplate } from "../types";
+import type { AzShipment, InventoryItem, Location, PackTemplate, PackTemplateItem } from "../types";
 import type { ScanPowerSource } from "./client";
 import { insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
 
@@ -43,6 +43,13 @@ export const liveScanPower: ScanPowerSource = {
   async listPackTemplates() {
     const data = await call<{ pack_templates: PackTemplate[] }>(`/v3/pack-template?limit=100`);
     return data.pack_templates;
+  },
+
+  async listPackTemplateItems(packTemplateId) {
+    const data = await call<{ pack_template_items: PackTemplateItem[] }>(
+      `/v3/pack-template/${encodeURIComponent(packTemplateId)}/items?limit=200`,
+    );
+    return data.pack_template_items.filter((i) => !(i as { deleted?: string | null }).deleted);
   },
 
   async listOpenShipments() {

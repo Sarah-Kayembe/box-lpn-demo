@@ -1,4 +1,4 @@
-import { inventory, locations, packTemplates, shipments } from "../mock-data";
+import { inventory, locations, packTemplateItems, packTemplates, shipments } from "../mock-data";
 import type { ScanPowerSource } from "./client";
 
 const pause = (ms = 150) => new Promise((r) => setTimeout(r, ms));
@@ -23,6 +23,11 @@ export const mockScanPower: ScanPowerSource = {
   async listPackTemplates() {
     await pause();
     return packTemplates;
+  },
+
+  async listPackTemplateItems(packTemplateId) {
+    await pause();
+    return packTemplateItems.filter((i) => i.pack_template_id === packTemplateId);
   },
 
   async listOpenShipments() {

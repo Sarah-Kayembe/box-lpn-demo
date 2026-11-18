@@ -1,4 +1,4 @@
-import type { AzShipment, BoxTag, InventoryItem, Location, PackTemplate } from "./types";
+import type { AzShipment, BoxTag, InventoryItem, Location, PackTemplate, PackTemplateItem } from "./types";
 
 /* Sample data shaped like ScanPower v3 responses. Product names are made up. */
 
@@ -33,6 +33,16 @@ export const packTemplates: PackTemplate[] = [
   tpl("pt-small", "Small box 12 x 10 x 8", 12, 10, 8),
   tpl("pt-medium", "Medium box 18 x 14 x 12", 18, 14, 12),
   tpl("pt-large", "Large box 24 x 18 x 18", 24, 18, 18),
+  tpl("pt-bottles-24", "Water bottle case, 12 sage + 12 blush", 18, 14, 12, 21.5),
+  tpl("pt-wellness", "Wellness box, 20 tea + 12 gummies", 12, 10, 8, 9),
+];
+
+/** Templates that also say what goes in the box. */
+export const packTemplateItems: PackTemplateItem[] = [
+  { pack_template_id: "pt-bottles-24", sku: "BTL-32-SAGE", quantity: 12 },
+  { pack_template_id: "pt-bottles-24", sku: "BTL-32-BLUSH", quantity: 12 },
+  { pack_template_id: "pt-wellness", sku: "TEA-GRN-20", quantity: 20 },
+  { pack_template_id: "pt-wellness", sku: "GUM-VITC-60", quantity: 12 },
 ];
 
 export const shipments: AzShipment[] = [
@@ -161,7 +171,7 @@ function loc(location_id: string, location_name: string, location_type: Location
   return { location_id, location_name, location_type, ship_from_id: SHIP_FROM_ID };
 }
 
-function tpl(id: string, name: string, l: number, w: number, h: number): PackTemplate {
+function tpl(id: string, name: string, l: number, w: number, h: number, weight: number | null = null): PackTemplate {
   return {
     pack_template_id: id,
     pack_template_name: name,
@@ -169,8 +179,8 @@ function tpl(id: string, name: string, l: number, w: number, h: number): PackTem
     width: w,
     height: h,
     unit_of_measurement: "IN",
-    weight: null,
-    unit_of_weight: null,
+    weight,
+    unit_of_weight: weight ? "LB" : null,
   };
 }
 
