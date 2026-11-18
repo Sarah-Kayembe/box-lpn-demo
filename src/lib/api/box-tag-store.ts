@@ -9,7 +9,7 @@ import type { AzShipment, BoxTag, Location, NewBoxTag } from "../types";
  */
 
 // Separate storage per mode, so sample boxes never mix with real ones.
-const KEY = `boxtag.boxes.v1.${MODE}`;
+const KEY = `boxtag.boxes.v2.${MODE}`;
 
 function read(): BoxTag[] {
   if (typeof window === "undefined") return [];
