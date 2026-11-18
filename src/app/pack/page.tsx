@@ -6,6 +6,7 @@ import { Alert } from "@/components/Alert";
 import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
+import { saveFnskuPrint } from "@/lib/fnsku-print";
 import type { BoxTagItem, InventoryItem, PackTemplate, UnitOfMeasurement } from "@/lib/types";
 
 type Line = BoxTagItem & { requiresExpiration: boolean };
@@ -394,6 +395,17 @@ export default function PackPage() {
             <p className={`flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
               {hint}
             </p>
+            <button
+              className="btn-ghost"
+              disabled={!lines.length}
+              onClick={() => {
+                saveFnskuPrint(lines);
+                window.open("/labels/fnsku", "_blank");
+              }}
+            >
+              <Icon name="printer" />
+              FNSKU labels ({units})
+            </button>
             <button className="btn-accent" disabled={!canSave} onClick={seal}>
               <Icon name="printer" />
               {saving ? "Sealing…" : "Seal box and print label"}
