@@ -1,4 +1,4 @@
-import type { AzShipment, InventoryItem, Location, PackTemplate, PackTemplateItem } from "../types";
+import type { AzShipment, InventoryItem, Location, LocationItem, PackTemplate, PackTemplateItem } from "../types";
 import type { ScanPowerSource } from "./client";
 import { insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
 
@@ -63,6 +63,22 @@ export const liveScanPower: ScanPowerSource = {
     return data.az_shipments
       .filter((s) => s.status === "WORKING")
       .map((s) => ({ ...s, box_count: s.box_count ?? 0 }));
+  },
+
+  async listLocationItems(locationId) {
+    const data = await call<{ item_locations: LocationItem[] }>(
+      `/v3/location/${encodeURIComponent(locationId)}/items?limit=200`,
+    );
+    const bySku = new Map<string, number>();
+    for (const row of data.item_locations) bySku.set(row.sku, (bySku.get(row.sku) ?? 0) + (row.fulfillable ?? 0));
+    return [...bySku].map(([sku, fulfillable]) => ({ sku, fulfillable }));
+  },
+
+  /** One request per SKU, sent in order, as ScanPower's location endpoints expect. */
+  async sendLocationCalls(calls) {
+    for (const c of calls) {
+      await call(c.path, { method: c.method, body: JSON.stringify(c.body) });
+    }
   },
 
   async addBoxToShipment(tag, shipment) {
