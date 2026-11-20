@@ -6,9 +6,10 @@ import { Alert } from "@/components/Alert";
 import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
+import { createPackTemplateBody } from "@/lib/api/payloads";
 import { saveFnskuPrint } from "@/lib/fnsku-print";
 import { matchPackTemplate, WEIGHT_TOLERANCE_LB, type MatchResult } from "@/lib/pack-template-match";
-import type { BoxTagItem, InventoryItem, PackTemplate, UnitOfMeasurement } from "@/lib/types";
+import type { BoxTagItem, InventoryItem, NewPackTemplate, PackTemplate, UnitOfMeasurement } from "@/lib/types";
 
 type Line = BoxTagItem & { requiresExpiration: boolean };
 
@@ -139,6 +140,24 @@ export default function PackPage() {
       ),
     [dims, weight, lines, templates],
   );
+
+  // What a new template would be, built from this box
+  const newTemplate: NewPackTemplate = {
+    pack_template_name: suggestTemplateName(lines),
+    length: num(dims.length) ?? 0,
+    width: num(dims.width) ?? 0,
+    height: num(dims.height) ?? 0,
+    unit_of_measurement: unit,
+    weight: num(weight),
+    unit_of_weight: "LB",
+    items: lines.map((l) => ({ sku: l.sku, quantity: l.quantity })),
+  };
+
+  async function saveTemplate(name: string) {
+    const created = await api.createPackTemplate({ ...newTemplate, pack_template_name: name });
+    setTemplates((current) => [...current, created]);
+    return created;
+  }
 
   const units = lines.reduce((s, l) => s + l.quantity, 0);
   const missingExpiry = lines.filter((l) => l.requiresExpiration && !l.expires);
@@ -403,7 +422,7 @@ export default function PackPage() {
             </div>
           </div>
 
-          <TemplateMatch match={match} />
+          <TemplateMatch match={match} draft={newTemplate} onSave={saveTemplate} />
 
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
             <p className={`min-w-[14rem] flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
@@ -433,7 +452,16 @@ export default function PackPage() {
 }
 
 /** Tells the packer whether this box matches one of the account's pack templates. */
-function TemplateMatch({ match }: { match: MatchResult }) {
+function TemplateMatch({
+  match,
+  draft,
+  onSave,
+}: {
+  match: MatchResult;
+  draft: NewPackTemplate;
+  onSave: (name: string) => Promise<PackTemplate>;
+}) {
+  const [saved, setSaved] = useState<string | null>(null);
   if (match.kind === "empty") return null;
 
   if (match.kind === "incomplete") {
@@ -453,6 +481,7 @@ function TemplateMatch({ match }: { match: MatchResult }) {
           <Icon name="check" size={15} />
         </span>
         <div className="min-w-0">
+          {saved === t.pack_template_id && <p className="text-sm font-bold text-navy-soft">Template saved.</p>}
           <p className="font-bold">Matches pack template “{t.pack_template_name}”</p>
           <p className="text-sm text-navy-soft">
             Same box size, SKUs and quantities, and the weight is within {WEIGHT_TOLERANCE_LB} lb of {t.weight} lb.
@@ -467,10 +496,98 @@ function TemplateMatch({ match }: { match: MatchResult }) {
     <div role="status" className="mt-5 rounded-[4px] border border-dashed border-[#b9c8d2] bg-sky-wash px-4 py-3">
       <p className="font-bold">No pack template matches this box</p>
       <p className="text-sm text-navy-soft">
-        None of your templates has this box size, weight, and these SKUs and quantities.
+        None of your templates has this box size, weight, and these SKUs and quantities. Save it as a template so
+        boxes packed the same way are recognized next time.
       </p>
+      <SaveTemplateForm draft={draft} onSave={async (name) => setSaved((await onSave(name)).pack_template_id)} />
     </div>
   );
+}
+
+/** Names and creates a pack template from the box being packed. */
+function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (name: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(draft.pack_template_name);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCall, setShowCall] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        className="btn-primary btn-sm mt-3"
+        onClick={() => {
+          setName(draft.pack_template_name);
+          setOpen(true);
+        }}
+      >
+        <Icon name="plus" size={16} />
+        Save as pack template
+      </button>
+    );
+  }
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    try {
+      await onSave(name.trim());
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn’t save the template");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <label className="label" htmlFor="template-name">
+        Template name
+      </label>
+      <input
+        id="template-name"
+        className="input"
+        value={name}
+        autoFocus
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && name.trim() && save()}
+      />
+      <p className="text-sm text-navy-soft">
+        {draft.length} × {draft.width} × {draft.height} in, {draft.weight} lb,{" "}
+        {(draft.items ?? []).map((i) => `${i.quantity} × ${i.sku}`).join(", ")}
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <button className="btn-primary btn-sm" disabled={!name.trim() || busy} onClick={save}>
+          {busy ? "Saving…" : "Save template"}
+        </button>
+        <button className="btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={busy}>
+          Cancel
+        </button>
+        <button
+          className="ml-auto text-sm font-semibold text-navy-soft underline-offset-2 hover:underline"
+          onClick={() => setShowCall((v) => !v)}
+        >
+          {showCall ? "Hide" : "Show"} the ScanPower API call
+        </button>
+      </div>
+      {showCall && (
+        <div className="rounded-[3px] border border-line bg-white p-3 text-xs">
+          <p className="mb-1 font-mono font-semibold">POST /v3/pack-template</p>
+          <pre className="max-h-56 overflow-auto font-mono text-[11px] leading-relaxed text-navy-soft">
+            {JSON.stringify(createPackTemplateBody({ ...draft, pack_template_name: name.trim() }), null, 2)}
+          </pre>
+        </div>
+      )}
+      {error && <p className="text-sm text-red-brand">{error}</p>}
+    </div>
+  );
+}
+
+/** A readable default name, like "12 × Insulated Water Bottle 32 oz, Sage". */
+function suggestTemplateName(lines: { quantity: number; title: string }[]) {
+  const name = lines.map((l) => `${l.quantity} × ${l.title}`).join(" + ");
+  return name.length > 80 ? `${name.slice(0, 78).trimEnd()}…` : name;
 }
 
 function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
