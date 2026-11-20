@@ -406,7 +406,7 @@ export default function PackPage() {
           <TemplateMatch match={match} />
 
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-            <p className={`flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
+            <p className={`min-w-[14rem] flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
               {hint}
             </p>
             <button
