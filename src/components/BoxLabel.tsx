@@ -12,6 +12,8 @@ export function BoxLabel({ box, locationName, url }: { box: BoxTag; locationName
   const shown = box.items.slice(0, MAX_LINES);
   const hidden = box.items.length - shown.length;
   const expiry = earliestExpiry(box);
+  // A box with one SKU also carries that SKU's FNSKU barcode, so it can be packed in ScanPower by scanning it
+  const single = box.items.length === 1 && box.items[0].fnsku ? box.items[0] : null;
 
   return (
     <div className="label-4x6 flex h-[6in] w-[4in] flex-col bg-white p-[0.18in] font-sans text-black">
@@ -20,10 +22,20 @@ export function BoxLabel({ box, locationName, url }: { box: BoxTag; locationName
         <span className="text-[10px]">Packed {formatDate(box.packed_at)}</span>
       </div>
 
-      <p className="mt-2 text-center font-mono text-[30px] font-bold leading-none tracking-wider">
+      {single && <Caption>Box ID · scan in BoxTag</Caption>}
+      <p
+        className={`text-center font-mono font-bold leading-none tracking-wider ${
+          single ? "mt-1 text-[24px]" : "mt-2 text-[30px]"
+        }`}
+      >
         {box.box_tag_id}
       </p>
-      <Barcode type="code128" value={box.box_tag_id} height={16} className="mx-auto mt-1.5 h-[0.85in] w-[3.4in]" />
+      <Barcode
+        type="code128"
+        value={box.box_tag_id}
+        height={single ? 12 : 16}
+        className={`mx-auto mt-1.5 w-[3.4in] ${single ? "h-[0.62in]" : "h-[0.85in]"}`}
+      />
 
       <div className="mt-2 grid grid-cols-3 border-y border-black text-center text-[10px] leading-tight">
         <Stat label="Units" value={String(totalUnits(box))} />
@@ -31,26 +43,39 @@ export function BoxLabel({ box, locationName, url }: { box: BoxTag; locationName
         <Stat label="Weight" value={box.weight ? `${box.weight} lb` : "—"} border />
       </div>
 
-      <table className="mt-2 w-full text-[10px] leading-tight">
-        <thead>
-          <tr className="border-b border-black text-left">
-            <th className="py-0.5 font-bold">SKU</th>
-            <th className="py-0.5 font-bold">FNSKU</th>
-            <th className="py-0.5 text-right font-bold">Qty</th>
-            <th className="py-0.5 pl-1 text-right font-bold">Expires</th>
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((i) => (
-            <tr key={i.sku} className="border-b border-black/30">
-              <td className="py-[2px] font-mono">{i.sku}</td>
-              <td className="py-[2px] font-mono">{i.fnsku}</td>
-              <td className="py-[2px] text-right font-bold">{i.quantity}</td>
-              <td className="py-[2px] pl-1 text-right">{i.expires ?? ""}</td>
+      {single ? (
+        <div className="mt-2">
+          <Caption>FNSKU · scan to pack in ScanPower</Caption>
+          <Barcode type="code128" value={single.fnsku!} height={12} className="mx-auto mt-1.5 h-[0.62in] w-[3.4in]" />
+          <p className="mt-1 text-center font-mono text-[16px] font-bold leading-none">{single.fnsku}</p>
+          <p className="mt-1 truncate text-center text-[10px] leading-tight">{single.title}</p>
+          <p className="text-center text-[10px] leading-tight">
+            SKU <span className="font-mono">{single.sku}</span> · Qty <span className="font-bold">{single.quantity}</span>
+            {single.expires && <> · Expires {single.expires}</>}
+          </p>
+        </div>
+      ) : (
+        <table className="mt-2 w-full text-[10px] leading-tight">
+          <thead>
+            <tr className="border-b border-black text-left">
+              <th className="py-0.5 font-bold">SKU</th>
+              <th className="py-0.5 font-bold">FNSKU</th>
+              <th className="py-0.5 text-right font-bold">Qty</th>
+              <th className="py-0.5 pl-1 text-right font-bold">Expires</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {shown.map((i) => (
+              <tr key={i.sku} className="border-b border-black/30">
+                <td className="py-[2px] font-mono">{i.sku}</td>
+                <td className="py-[2px] font-mono">{i.fnsku}</td>
+                <td className="py-[2px] text-right font-bold">{i.quantity}</td>
+                <td className="py-[2px] pl-1 text-right">{i.expires ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       {hidden > 0 && <p className="mt-1 text-[10px] italic">+ {hidden} more SKUs. Scan the QR code for the full list.</p>}
 
       <div className="mt-auto flex items-end gap-3 border-t-2 border-black pt-2">
@@ -75,6 +100,15 @@ export function BoxLabel({ box, locationName, url }: { box: BoxTag; locationName
         </div>
       </div>
     </div>
+  );
+}
+
+/** Small black tab above a barcode that says what the barcode is for. */
+function Caption({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mx-auto w-fit bg-black px-2 py-[1px] text-[9px] font-bold uppercase tracking-wider text-white">
+      {children}
+    </p>
   );
 }
 
