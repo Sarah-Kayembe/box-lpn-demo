@@ -22,20 +22,21 @@ export function BoxLabel({ box, locationName, url }: { box: BoxTag; locationName
         <span className="text-[10px]">Packed {formatDate(box.packed_at)}</span>
       </div>
 
-      {single && <Caption>Box ID · scan in BoxTag</Caption>}
-      <p
-        className={`text-center font-mono font-bold leading-none tracking-wider ${
-          single ? "mt-1 text-[24px]" : "mt-2 text-[30px]"
-        }`}
-      >
+      <p className="mt-2 text-center font-mono text-[30px] font-bold leading-none tracking-wider">
         {box.box_tag_id}
       </p>
-      <Barcode
-        type="code128"
-        value={box.box_tag_id}
-        height={single ? 12 : 16}
-        className={`mx-auto mt-1.5 w-[3.4in] ${single ? "h-[0.62in]" : "h-[0.85in]"}`}
-      />
+
+      {single ? (
+        // One SKU: the FNSKU item barcode takes the box barcode's place, so the box packs in ScanPower with one scan
+        <div className="mt-1.5">
+          <Caption>FNSKU · scan to pack in ScanPower</Caption>
+          <Barcode type="code128" value={single.fnsku!} height={16} className="mx-auto mt-1 h-[0.85in] w-[3.4in]" />
+          <p className="mt-1 text-center font-mono text-[16px] font-bold leading-none">{single.fnsku}</p>
+          <p className="mt-1 truncate text-center text-[10px] leading-tight">{single.title}</p>
+        </div>
+      ) : (
+        <Barcode type="code128" value={box.box_tag_id} height={16} className="mx-auto mt-1.5 h-[0.85in] w-[3.4in]" />
+      )}
 
       <div className="mt-2 grid grid-cols-3 border-y border-black text-center text-[10px] leading-tight">
         <Stat label="Units" value={String(totalUnits(box))} />
@@ -44,16 +45,10 @@ export function BoxLabel({ box, locationName, url }: { box: BoxTag; locationName
       </div>
 
       {single ? (
-        <div className="mt-2">
-          <Caption>FNSKU · scan to pack in ScanPower</Caption>
-          <Barcode type="code128" value={single.fnsku!} height={12} className="mx-auto mt-1.5 h-[0.62in] w-[3.4in]" />
-          <p className="mt-1 text-center font-mono text-[16px] font-bold leading-none">{single.fnsku}</p>
-          <p className="mt-1 truncate text-center text-[10px] leading-tight">{single.title}</p>
-          <p className="text-center text-[10px] leading-tight">
-            SKU <span className="font-mono">{single.sku}</span> · Qty <span className="font-bold">{single.quantity}</span>
-            {single.expires && <> · Expires {single.expires}</>}
-          </p>
-        </div>
+        <p className="mt-2 text-center text-[11px] leading-tight">
+          SKU <span className="font-mono">{single.sku}</span> · Qty <span className="font-bold">{single.quantity}</span>
+          {single.expires && <> · Expires {single.expires}</>}
+        </p>
       ) : (
         <table className="mt-2 w-full text-[10px] leading-tight">
           <thead>
