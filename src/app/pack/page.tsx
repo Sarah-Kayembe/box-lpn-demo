@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
 import { saveFnskuPrint } from "@/lib/fnsku-print";
+import { matchPackTemplate, WEIGHT_TOLERANCE_LB, type MatchResult } from "@/lib/pack-template-match";
 import type { BoxTagItem, InventoryItem, PackTemplate, UnitOfMeasurement } from "@/lib/types";
 
 type Line = BoxTagItem & { requiresExpiration: boolean };
@@ -127,6 +128,18 @@ export default function PackPage() {
     );
   }
 
+  const num = (v: string) => (v.trim() && !Number.isNaN(Number(v)) ? Number(v) : null);
+
+  // Checked on every change, against the templates loaded when the page opened
+  const match = useMemo(
+    () =>
+      matchPackTemplate(
+        { length: num(dims.length), width: num(dims.width), height: num(dims.height), weight: num(weight), items: lines },
+        templates,
+      ),
+    [dims, weight, lines, templates],
+  );
+
   const units = lines.reduce((s, l) => s + l.quantity, 0);
   const missingExpiry = lines.filter((l) => l.requiresExpiration && !l.expires);
   const canSave = lines.length > 0 && missingExpiry.length === 0 && !saving;
@@ -141,7 +154,6 @@ export default function PackPage() {
     setSaving(true);
     setError(null);
     try {
-      const num = (v: string) => (v.trim() ? Number(v) : null);
       const tag = await api.createBoxTag({
         items: lines.map((l) => ({
           sku: l.sku,
@@ -152,7 +164,7 @@ export default function PackPage() {
           manufacturing_lot_code: l.manufacturing_lot_code,
           image_url: l.image_url ?? null,
         })),
-        pack_template_id: templateId || null,
+        pack_template_id: match.kind === "match" ? match.template.pack_template_id : templateId || null,
         length: num(dims.length),
         width: num(dims.width),
         height: num(dims.height),
@@ -391,6 +403,8 @@ export default function PackPage() {
             </div>
           </div>
 
+          <TemplateMatch match={match} />
+
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
             <p className={`flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
               {hint}
@@ -414,6 +428,47 @@ export default function PackPage() {
           {error && <p className="mt-2 text-sm text-red-brand">{error}</p>}
         </section>
       </div>
+    </div>
+  );
+}
+
+/** Tells the packer whether this box matches one of the account's pack templates. */
+function TemplateMatch({ match }: { match: MatchResult }) {
+  if (match.kind === "empty") return null;
+
+  if (match.kind === "incomplete") {
+    return (
+      <p className="mt-5 flex items-center gap-2 text-sm text-navy-soft">
+        <Icon name="info" size={16} />
+        Add the {match.missing.join(" and ")} to check this box against your pack templates.
+      </p>
+    );
+  }
+
+  if (match.kind === "match") {
+    const t = match.template;
+    return (
+      <div role="status" className="mt-5 flex items-start gap-3 rounded-[4px] border border-l-4 border-sky-brand border-l-navy bg-sky-soft px-4 py-3">
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-navy text-white">
+          <Icon name="check" size={15} />
+        </span>
+        <div className="min-w-0">
+          <p className="font-bold">Matches pack template “{t.pack_template_name}”</p>
+          <p className="text-sm text-navy-soft">
+            Same box size, SKUs and quantities, and the weight is within {WEIGHT_TOLERANCE_LB} lb of {t.weight} lb.
+            The box will be saved with this template.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div role="status" className="mt-5 rounded-[4px] border border-dashed border-[#b9c8d2] bg-sky-wash px-4 py-3">
+      <p className="font-bold">No pack template matches this box</p>
+      <p className="text-sm text-navy-soft">
+        None of your templates has this box size, weight, and these SKUs and quantities.
+      </p>
     </div>
   );
 }
