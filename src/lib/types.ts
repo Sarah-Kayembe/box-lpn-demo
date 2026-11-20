@@ -15,12 +15,17 @@ export interface InventoryItem {
   fnsku: string | null;
   marketplace_id: MarketplaceId;
   fulfillment_channel: FulfillmentChannel;
-  quantity: number;
+  /** Units on hand. ScanPower leaves this empty for Amazon FBA items. */
+  quantity: number | null;
+  /** For FBA items, sellable units sitting at Amazon (detail.fulfillableQuantity) */
+  amazon_fulfillable?: number | null;
   condition: string;
   product: {
     title: string;
     asin?: string;
     upc?: string | null;
+    /** UPC and EAN codes as 14-digit GTINs */
+    gtins?: string[] | null;
     /** Product image URLs, first one is the main image */
     images?: string[] | null;
     requires_expiration?: boolean;
