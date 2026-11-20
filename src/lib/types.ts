@@ -45,7 +45,12 @@ export interface PackTemplate {
   unit_of_measurement: UnitOfMeasurement;
   weight: number | null;
   unit_of_weight: UnitOfWeight | null;
+  /** SKUs that go in this template, returned when listing with with_items=true */
+  items?: { sku: string; quantity: number }[] | null;
 }
+
+/** POST /v3/pack-template  ->  one template to create, items included */
+export type NewPackTemplate = Omit<PackTemplate, "pack_template_id">;
 
 /** GET /v3/location/{location_id}/items  ->  items[] (trimmed) */
 export interface LocationItem {

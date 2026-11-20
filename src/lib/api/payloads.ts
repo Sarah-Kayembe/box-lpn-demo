@@ -1,4 +1,4 @@
-import type { AzShipment, BoxTag } from "../types";
+import type { AzShipment, BoxTag, NewPackTemplate } from "../types";
 
 /*
  * Turns a BoxTag into the requests ScanPower already accepts for shipment
@@ -81,4 +81,24 @@ export function removeFromShelfCalls(tag: BoxTag, locationId: string): ApiCall[]
 /** The calls a location change makes, whichever kind it is. */
 export function locationChangeCalls(tag: BoxTag, toId: string): ApiCall[] {
   return tag.location_id ? moveCalls(tag, tag.location_id, toId) : putAwayCalls(tag, toId);
+}
+
+/* ---------- Pack templates ---------- */
+
+/** POST /v3/pack-template, with the template's SKUs included in the same call */
+export function createPackTemplateBody(template: NewPackTemplate) {
+  return {
+    pack_templates: [
+      {
+        pack_template_name: template.pack_template_name,
+        length: template.length,
+        width: template.width,
+        height: template.height,
+        unit_of_measurement: template.unit_of_measurement,
+        weight: template.weight,
+        unit_of_weight: template.unit_of_weight,
+        items: (template.items ?? []).map(({ sku, quantity }) => ({ sku, quantity })),
+      },
+    ],
+  };
 }
