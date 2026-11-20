@@ -1,11 +1,13 @@
 import type { AzShipment, InventoryItem, Location, LocationItem, PackTemplate, PackTemplateItem } from "../types";
 import type { ScanPowerSource } from "./client";
+import { inventorySearches, looksLikeFnsku, toInventoryItem, type RawInventoryItem } from "./scanpower-inventory";
 import { createPackTemplateBody, insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
 
 /*
  * Talks to the real ScanPower API through this app's own /api/scanpower
  * route, which keeps the credentials on the server. Written from the v3
- * OpenAPI document and not yet tested against a real account.
+ * OpenAPI document. Inventory reading is checked against a real test account;
+ * the rest is not yet.
  */
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -25,16 +27,22 @@ const SHIP_FROM_ID = process.env.NEXT_PUBLIC_SCANPOWER_SHIP_FROM_ID ?? "";
 
 export const liveScanPower: ScanPowerSource = {
   async listInventory(search = "") {
-    const params = new URLSearchParams({ limit: "100", with_data: "true" });
-    if (search) {
-      params.set("search", search);
-      // A run of 12 to 14 digits is a scanned UPC or GTIN
-      if (/^\d{12,14}$/.test(search.trim())) params.set("search_by", "upc");
+    type Reply = { inventory: { sku: string; items: RawInventoryItem[] }[] };
+    const fetchRows = async (params: URLSearchParams) =>
+      (await call<Reply>(`/v3/inventory?${params}`)).inventory.flatMap((row) => row.items.slice(0, 1));
+
+    // ScanPower searches one field at a time, so run the likely ones together and merge
+    const results = await Promise.all(inventorySearches(search).map((p) => fetchRows(p).catch(() => [])));
+    const bySku = new Map<string, InventoryItem>();
+    for (const raw of results.flat()) if (!bySku.has(raw.sku)) bySku.set(raw.sku, toInventoryItem(raw));
+
+    // An FNSKU can't be searched by field, so look for it in the unfiltered list
+    if (!bySku.size && looksLikeFnsku(search)) {
+      const all = await fetchRows(new URLSearchParams({ limit: "500" }));
+      const wanted = search.trim().toUpperCase();
+      for (const raw of all) if (raw.fnsku?.toUpperCase() === wanted) bySku.set(raw.sku, toInventoryItem(raw));
     }
-    const data = await call<{ inventory: { sku: string; items: InventoryItem[] }[] }>(
-      `/v3/inventory?${params}`,
-    );
-    return data.inventory.flatMap((row) => row.items.slice(0, 1));
+    return [...bySku.values()];
   },
 
   async listLocations() {

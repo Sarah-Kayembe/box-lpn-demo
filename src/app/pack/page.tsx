@@ -7,6 +7,7 @@ import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
 import { createPackTemplateBody } from "@/lib/api/payloads";
+import { matchesBarcode } from "@/lib/api/scanpower-inventory";
 import { saveFnskuPrint } from "@/lib/fnsku-print";
 import { matchPackTemplate, WEIGHT_TOLERANCE_LB, type MatchResult } from "@/lib/pack-template-match";
 import type { BoxTagItem, InventoryItem, NewPackTemplate, PackTemplate, UnitOfMeasurement } from "@/lib/types";
@@ -72,7 +73,12 @@ export default function PackPage() {
   function onScan(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter") return;
     const code = search.trim().toUpperCase();
-    const exact = results.find((i) => i.sku === code || i.fnsku === code || i.product.upc === code);
+    const exact = results.find(
+      (i) =>
+        i.sku.toUpperCase() === code ||
+        i.fnsku?.toUpperCase() === code ||
+        matchesBarcode(code, [i.product.upc, ...(i.product.gtins ?? [])]),
+    );
     const only = results.length === 1 ? results[0] : null;
     const match = exact ?? only;
     if (match) {
@@ -248,7 +254,8 @@ export default function PackPage() {
                   </p>
                   <p className="text-xs text-navy-soft">
                     {inv.sku} · {inv.fnsku}
-                    {inv.product.upc && ` · UPC ${inv.product.upc}`} · {inv.quantity} on hand
+                    {inv.product.upc && ` · UPC ${inv.product.upc}`}
+                    {stockText(inv) && ` · ${stockText(inv)}`}
                     {inv.product.requires_expiration && (
                       <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-butter/60 bg-butter-soft px-2 py-px font-bold text-butter">
                         <span className="h-1.5 w-1.5 rounded-full bg-butter" />
@@ -449,6 +456,13 @@ export default function PackPage() {
       </div>
     </div>
   );
+}
+
+/** "48 on hand" for warehouse stock, "12 at Amazon" for FBA items, or nothing when unknown. */
+function stockText(inv: InventoryItem) {
+  if (inv.quantity != null) return `${inv.quantity} on hand`;
+  if (inv.amazon_fulfillable != null) return `${inv.amazon_fulfillable} at Amazon`;
+  return null;
 }
 
 /** Tells the packer whether this box matches one of the account's pack templates. */
