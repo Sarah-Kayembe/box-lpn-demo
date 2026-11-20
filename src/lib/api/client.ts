@@ -7,6 +7,7 @@ import type {
   PackTemplate,
   PackTemplateItem,
   LocationItem,
+  NewPackTemplate,
 } from "../types";
 import { locationChangeCalls, removeFromShelfCalls, type ApiCall } from "./payloads";
 import { MODE } from "../mode";
@@ -18,8 +19,11 @@ import { mockScanPower } from "./mock";
 export interface ScanPowerSource {
   listInventory(search?: string): Promise<InventoryItem[]>;
   listLocations(): Promise<Location[]>;
+  /** All pack templates, each with its SKUs and quantities. */
   listPackTemplates(): Promise<PackTemplate[]>;
   listPackTemplateItems(packTemplateId: string): Promise<PackTemplateItem[]>;
+  /** Creates one pack template with its SKUs and returns it. */
+  createPackTemplate(template: NewPackTemplate): Promise<PackTemplate>;
   listOpenShipments(): Promise<AzShipment[]>;
   /** What ScanPower has on one shelf, per SKU. */
   listLocationItems(locationId: string): Promise<LocationItem[]>;
@@ -61,6 +65,7 @@ export const api = {
   async resetDemo() {
     try {
       localStorage.removeItem("boxtag.location-items.v2.mock");
+      localStorage.removeItem("boxtag.pack-templates.v1.mock");
     } catch {
       /* storage unavailable */
     }
@@ -74,6 +79,7 @@ function bind(s: ScanPowerSource): ScanPowerSource {
     listLocations: s.listLocations.bind(s),
     listPackTemplates: s.listPackTemplates.bind(s),
     listPackTemplateItems: s.listPackTemplateItems.bind(s),
+    createPackTemplate: s.createPackTemplate.bind(s),
     listOpenShipments: s.listOpenShipments.bind(s),
     listLocationItems: s.listLocationItems.bind(s),
     sendLocationCalls: s.sendLocationCalls.bind(s),

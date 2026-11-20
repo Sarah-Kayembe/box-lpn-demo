@@ -1,6 +1,6 @@
 import type { AzShipment, InventoryItem, Location, LocationItem, PackTemplate, PackTemplateItem } from "../types";
 import type { ScanPowerSource } from "./client";
-import { insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
+import { createPackTemplateBody, insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
 
 /*
  * Talks to the real ScanPower API through this app's own /api/scanpower
@@ -44,9 +44,27 @@ export const liveScanPower: ScanPowerSource = {
     return data.locations;
   },
 
+  /** One call loads every template with its SKUs, so boxes can be matched as they're packed. */
   async listPackTemplates() {
-    const data = await call<{ pack_templates: PackTemplate[] }>(`/v3/pack-template?limit=100`);
-    return data.pack_templates;
+    type Row = Omit<PackTemplate, "items"> & {
+      deleted?: string | null;
+      items?: (PackTemplateItem & { deleted?: string | null })[] | null;
+    };
+    const data = await call<{ pack_templates: Row[] }>(`/v3/pack-template?limit=500&with_items=true`);
+    return data.pack_templates
+      .filter((t) => !t.deleted)
+      .map((t) => ({
+        ...t,
+        items: (t.items ?? []).filter((i) => !i.deleted).map(({ sku, quantity }) => ({ sku, quantity })),
+      }));
+  },
+
+  async createPackTemplate(input) {
+    const data = await call<{ pack_templates: PackTemplate[] }>(`/v3/pack-template`, {
+      method: "POST",
+      body: JSON.stringify(createPackTemplateBody(input)),
+    });
+    return data.pack_templates[0];
   },
 
   async listPackTemplateItems(packTemplateId) {

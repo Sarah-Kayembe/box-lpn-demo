@@ -1,6 +1,29 @@
 import { inventory, locations, packTemplateItems, packTemplates, seedBoxTags, shipments } from "../mock-data";
+import type { PackTemplate } from "../types";
 import type { ScanPowerSource } from "./client";
 import type { ApiCall } from "./payloads";
+
+/* Pack templates created in the demo, saved in the browser next to the built-in ones. */
+const TEMPLATES_KEY = "boxtag.pack-templates.v1.mock";
+
+function savedTemplates(): PackTemplate[] {
+  try {
+    return JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]") as PackTemplate[];
+  } catch {
+    return [];
+  }
+}
+
+/** Built-in templates with their SKUs attached, the way GET /v3/pack-template?with_items=true returns them. */
+function allTemplates(): PackTemplate[] {
+  const builtIn = packTemplates.map((t) => ({
+    ...t,
+    items: packTemplateItems
+      .filter((i) => i.pack_template_id === t.pack_template_id)
+      .map(({ sku, quantity }) => ({ sku, quantity })),
+  }));
+  return [...builtIn, ...savedTemplates()];
+}
 
 /*
  * Demo stand-in for ScanPower's location inventory: shelf -> SKU -> units.
@@ -76,12 +99,24 @@ export const mockScanPower: ScanPowerSource = {
 
   async listPackTemplates() {
     await pause();
-    return packTemplates;
+    return allTemplates();
   },
 
   async listPackTemplateItems(packTemplateId) {
     await pause();
-    return packTemplateItems.filter((i) => i.pack_template_id === packTemplateId);
+    const t = allTemplates().find((x) => x.pack_template_id === packTemplateId);
+    return (t?.items ?? []).map((i) => ({ ...i, pack_template_id: packTemplateId }));
+  },
+
+  async createPackTemplate(input) {
+    await pause(300);
+    const created: PackTemplate = { ...input, pack_template_id: `pt-${Date.now().toString(36)}` };
+    try {
+      localStorage.setItem(TEMPLATES_KEY, JSON.stringify([...savedTemplates(), created]));
+    } catch {
+      /* storage unavailable, the template lasts until the page reloads */
+    }
+    return created;
   },
 
   async listOpenShipments() {
