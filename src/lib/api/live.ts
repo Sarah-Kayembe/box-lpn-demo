@@ -6,8 +6,7 @@ import { createPackTemplateBody, insertAzBoxBody, mergeAzBoxItemsBody } from "./
 /*
  * Talks to the real ScanPower API through this app's own /api/scanpower
  * route, which keeps the credentials on the server. Written from the v3
- * OpenAPI document. Inventory reading is checked against a real test account;
- * the rest is not yet.
+ * OpenAPI document.
  */
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
