@@ -99,10 +99,26 @@ export const liveScanPower: ScanPowerSource = {
     return [...bySku].map(([sku, fulfillable]) => ({ sku, fulfillable }));
   },
 
-  /** One request per SKU, sent in order, as ScanPower's location endpoints expect. */
+  /**
+   * One request per SKU, sent in order, as ScanPower's location endpoints expect.
+   * ScanPower answers "success" with an empty list when nothing changed (for
+   * example, updating a SKU that has no row at that location), so that counts
+   * as a failure here.
+   */
   async sendLocationCalls(calls) {
     for (const c of calls) {
-      await call(c.path, { method: c.method, body: JSON.stringify(c.body) });
+      const reply = await call<{ updated?: unknown[]; transferred?: unknown[] }>(c.path, {
+        method: c.method,
+        body: JSON.stringify(c.body),
+      });
+      const changed = reply.updated ?? reply.transferred;
+      if (Array.isArray(changed) && changed.length === 0) {
+        const body = c.body as { update_items?: { sku: string }[]; transfer?: { sku: string }[] };
+        const sku = (body.update_items ?? body.transfer ?? [])[0]?.sku ?? "this SKU";
+        throw new Error(
+          `ScanPower accepted the request but changed nothing for ${sku}. Its location count was not updated, so the box history was left as it was.`,
+        );
+      }
     }
   },
 
