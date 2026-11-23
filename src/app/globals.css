@@ -7,6 +7,8 @@
   --color-sky-wash: #f4fafd;
   --color-red-brand: #d64d41;
   --color-red-soft: #fbe6e3;
+  /* For red buttons with white text: 6.8:1 */
+  --color-red-deep: #b42318;
   --color-navy: #1f2834;
   --color-navy-soft: #4a5566;
   --color-line: #d9e9f2;
@@ -42,6 +44,12 @@ body {
 }
 @utility btn-accent {
   @apply btn bg-red-brand text-white hover:bg-[#bf3f34];
+}
+@utility btn-danger {
+  @apply btn bg-red-deep text-white hover:bg-[#912018];
+}
+@utility btn-danger-ghost {
+  @apply btn border-2 border-red-deep bg-white text-red-deep hover:bg-red-soft;
 }
 @utility btn-ghost {
   @apply btn border-2 border-navy bg-white text-navy hover:bg-sky-soft;
