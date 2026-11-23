@@ -12,8 +12,11 @@
   --color-line: #d9e9f2;
   --color-mint-soft: #edf5ee;
   --color-mint: #2e7d32;
-  --color-butter-soft: #fdf3d8;
-  --color-butter: #9a6b00;
+  /* Amber for warnings, chosen to pass WCAG AAA: text 7.1:1 on white, 8.2:1 on butter-soft */
+  --color-butter-soft: #fef3c7;
+  --color-butter: #92400e;
+  --color-butter-ink: #78350f;
+  --color-butter-edge: #b45309;
 
   --font-sans: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
