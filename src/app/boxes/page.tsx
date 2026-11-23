@@ -13,6 +13,7 @@ const filters: { value: BoxTagStatus | "all"; label: string }[] = [
   { value: "packed", label: "Not put away" },
   { value: "stored", label: "Stored" },
   { value: "shipped", label: "Shipped" },
+  { value: "unpacked", label: "Unpacked" },
 ];
 
 export default function BoxesPage() {
@@ -38,7 +39,9 @@ export default function BoxesPage() {
   }, [boxes, filter, query]);
 
   const where = (b: BoxTag) =>
-    b.status === "shipped"
+    b.status === "unpacked"
+      ? "Unpacked"
+      : b.status === "shipped"
       ? b.shipment_id
       : (locations.find((l) => l.location_id === b.location_id)?.location_name ?? "Not put away");
 

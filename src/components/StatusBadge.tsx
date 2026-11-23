@@ -4,6 +4,7 @@ const styles: Record<BoxTagStatus, { tag: string; label: string }> = {
   packed: { tag: "bg-butter", label: "Not put away" },
   stored: { tag: "bg-navy", label: "Stored" },
   shipped: { tag: "bg-mint", label: "In a shipment" },
+  unpacked: { tag: "bg-navy-soft", label: "Unpacked" },
 };
 
 export function StatusBadge({ status }: { status: BoxTagStatus }) {
