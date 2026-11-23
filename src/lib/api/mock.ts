@@ -130,6 +130,16 @@ export const mockScanPower: ScanPowerSource = {
     return Object.entries(shelf).map(([sku, fulfillable]) => ({ sku, fulfillable }));
   },
 
+  async listItemLocations(sku) {
+    await pause();
+    const want = sku?.trim().toLowerCase();
+    return Object.entries(readShelves()).flatMap(([location_id, skus]) =>
+      Object.entries(skus)
+        .filter(([s]) => !want || s.toLowerCase() === want)
+        .map(([s, fulfillable]) => ({ location_id, sku: s, fulfillable })),
+    );
+  },
+
   async sendLocationCalls(calls) {
     const shelves = readShelves();
     for (const call of calls) {
