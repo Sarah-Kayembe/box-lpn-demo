@@ -97,7 +97,8 @@ export interface AzShipment {
  * /v3/box-tag endpoint for the real thing.
  */
 
-export type BoxTagStatus = "packed" | "stored" | "shipped";
+/** "unpacked": the box was opened and its record kept for its history. */
+export type BoxTagStatus = "packed" | "stored" | "shipped" | "unpacked";
 
 export interface BoxTagItem {
   sku: string;
@@ -113,7 +114,7 @@ export interface BoxTagItem {
 
 export interface BoxTagEvent {
   at: string;
-  type: "packed" | "stored" | "moved" | "shipped" | "label_printed";
+  type: "packed" | "stored" | "moved" | "shipped" | "label_printed" | "unpacked";
   note: string;
 }
 

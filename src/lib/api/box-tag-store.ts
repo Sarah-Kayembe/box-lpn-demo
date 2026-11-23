@@ -109,7 +109,17 @@ export const boxTagStore = {
     }));
   },
 
-  async markShipped(id: string, shipment: AzShipment, boxId: string) {
+  /** Keeps the record, marked Unpacked, so its history stays traceable. */
+  async unpack(id: string, note: string) {
+    return update(id, (b) => ({
+      ...b,
+      status: "unpacked",
+      location_id: null,
+      history: [...b.history, { at: now(), type: "unpacked", note }],
+    }));
+  },
+
+  async markShipped(id: string, shipment: AzShipment, boxId: string, problem?: string) {
     return update(id, (b) => ({
       ...b,
       status: "shipped",
@@ -120,7 +130,9 @@ export const boxTagStore = {
         {
           at: now(),
           type: "shipped",
-          note: `Added to ${shipment.shipment_id} (${shipment.name}) as box ${boxId}`,
+          note: `Added to ${shipment.shipment_id} (${shipment.name}) as box ${boxId}${
+            problem ? ". ScanPower’s count at its old location was not updated" : ""
+          }`,
         },
       ],
     }));

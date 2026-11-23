@@ -51,6 +51,7 @@ export const api = {
     const tag = await boxTagStore.get(id);
     if (!tag) throw new Error(`Box ${id} was not found`);
     if (tag.status === "shipped") throw new Error(`Box ${id} is already in a shipment`);
+    if (tag.status === "unpacked") throw new Error(`Box ${id} was unpacked`);
     await source.sendLocationCalls(locationChangeCalls(tag, location.location_id));
     return boxTagStore.putAway(id, location);
   },
@@ -60,9 +61,30 @@ export const api = {
     const tag = await boxTagStore.get(id);
     if (!tag) throw new Error(`Box ${id} was not found`);
     if (tag.status === "shipped") throw new Error(`Box ${id} is already in a shipment`);
+    if (tag.status === "unpacked") throw new Error(`Box ${id} was unpacked`);
     const boxId = await source.addBoxToShipment(tag, shipment);
-    if (tag.location_id) await source.sendLocationCalls(removeFromShelfCalls(tag, tag.location_id));
-    return boxTagStore.markShipped(id, shipment, boxId);
+
+    // The box is in the shipment now, so a failed location update must not hide that
+    let problem: string | undefined;
+    if (tag.location_id) {
+      try {
+        await source.sendLocationCalls(removeFromShelfCalls(tag, tag.location_id));
+      } catch (e) {
+        problem = e instanceof Error ? e.message : "ScanPower’s location count was not updated.";
+      }
+    }
+    const box = await boxTagStore.markShipped(id, shipment, boxId, problem);
+    return { box, problem };
+  },
+
+  /** Marks the box Unpacked. Nothing is sent to ScanPower: its units stay counted where they are. */
+  async unpackBoxTag(id: string, locationName?: string) {
+    const tag = await boxTagStore.get(id);
+    if (!tag) throw new Error(`Box ${id} was not found`);
+    if (tag.status === "shipped") throw new Error(`Box ${id} is in a shipment and can’t be unpacked here`);
+    if (tag.status === "unpacked") throw new Error(`Box ${id} was already unpacked`);
+    const note = locationName ? `Unpacked at ${locationName}. Its units stay counted there` : "Unpacked before it was put away";
+    return boxTagStore.unpack(id, note);
   },
 
   async resetDemo() {
