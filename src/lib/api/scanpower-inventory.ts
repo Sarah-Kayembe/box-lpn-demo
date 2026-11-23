@@ -3,7 +3,6 @@ import type { FulfillmentChannel, InventoryItem, MarketplaceId } from "../types"
 /*
  * Turns ScanPower's real GET /v3/inventory replies into BoxTag's InventoryItem,
  * and decides how to search for what someone typed or scanned.
- * Field names here come from a real test-account reply, not only the docs.
  */
 
 /** One entry of inventory[].items[] as ScanPower actually sends it (only the fields BoxTag reads). */
