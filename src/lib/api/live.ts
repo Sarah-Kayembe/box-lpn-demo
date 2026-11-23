@@ -1,4 +1,4 @@
-import type { AzShipment, InventoryItem, Location, LocationItem, PackTemplate, PackTemplateItem } from "../types";
+import type { AzShipment, InventoryItem, ItemLocation, Location, LocationItem, PackTemplate, PackTemplateItem } from "../types";
 import type { ScanPowerSource } from "./client";
 import { inventorySearches, looksLikeFnsku, toInventoryItem, type RawInventoryItem } from "./scanpower-inventory";
 import { createPackTemplateBody, insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
@@ -97,6 +97,18 @@ export const liveScanPower: ScanPowerSource = {
     const bySku = new Map<string, number>();
     for (const row of data.item_locations) bySku.set(row.sku, (bySku.get(row.sku) ?? 0) + (row.fulfillable ?? 0));
     return [...bySku].map(([sku, fulfillable]) => ({ sku, fulfillable }));
+  },
+
+  async listItemLocations(sku) {
+    const params = new URLSearchParams({ limit: "500" });
+    if (sku) params.set("skus", sku.trim());
+    if (SHIP_FROM_ID) params.set("ship_from_id", SHIP_FROM_ID);
+    type Row = ItemLocation & { fulfillable: number | null; deleted?: string | null };
+    const data = await call<{ item_locations: Row[] }>(`/v3/location/items?${params}`);
+    const want = sku?.trim().toLowerCase();
+    return data.item_locations
+      .filter((r) => !r.deleted && (!want || r.sku.toLowerCase() === want))
+      .map((r) => ({ location_id: r.location_id, sku: r.sku, fulfillable: r.fulfillable ?? 0 }));
   },
 
   /**
