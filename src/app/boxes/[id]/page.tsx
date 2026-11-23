@@ -15,7 +15,8 @@ import {
   removeFromShelfCalls,
 } from "@/lib/api/payloads";
 import { earliestExpiry, formatDate, formatDims, totalUnits } from "@/lib/format";
-import type { AzShipment, LocationItem } from "@/lib/types";
+import type { AzShipment, Location, LocationItem } from "@/lib/types";
+import type { UnpackPlan } from "@/lib/api/client";
 import { useBoxTag } from "@/lib/useBoxTag";
 
 export default function BoxPage({ params }: { params: Promise<{ id: string }> }) {
@@ -237,9 +238,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
             <h2 className="text-lg font-bold">Where it is</h2>
             {box.status === "unpacked" ? (
               <>
-                <p className="mt-2 text-sm text-navy-soft">
-                  {box.history.findLast((h) => h.type === "unpacked")?.note ?? "Unpacked"}.
-                </p>
+                <UnpackedSummary note={box.history.findLast((h) => h.type === "unpacked")} />
                 {notice("unpack")}
               </>
             ) : box.status === "shipped" ? (
@@ -416,10 +415,11 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
             <UnpackBox
               boxId={box.box_tag_id}
               where={box.location_id ? (locationName(box.location_id) ?? null) : null}
+              otherLocations={locations.filter((l) => l.location_id !== box.location_id)}
               busy={busy !== null}
-              onUnpack={async () => {
+              onUnpack={async (plan) => {
                 const where = box.location_id ? (locationName(box.location_id) ?? undefined) : undefined;
-                const updated = await api.unpackBoxTag(box.box_tag_id, where);
+                const updated = await api.unpackBoxTag(box.box_tag_id, plan, where);
                 setBox(updated);
                 setMessage({
                   at: "unpack",
@@ -436,29 +436,68 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
   );
 }
 
-/** Unpacking needs the box ID typed in first, so nobody does it by accident. */
+/** "Unpacked on Nov 23, 2026" plus where it was and where its items went. */
+function UnpackedSummary({ note }: { note?: { at: string; note: string } }) {
+  if (!note) return <p className="mt-2 text-sm text-navy-soft">Unpacked.</p>;
+  const detail = note.note.startsWith("Unpacked. ")
+    ? note.note.slice("Unpacked. ".length)
+    : note.note === "Unpacked before it was put away"
+      ? "It was never put away"
+      : note.note;
+  return (
+    <div className="mt-2 text-sm">
+      <p className="font-semibold">Unpacked on {formatDate(note.at)}.</p>
+      <p className="mt-0.5 text-navy-soft">{detail}.</p>
+    </div>
+  );
+}
+
+type Choice = "stay" | "move" | "remove";
+
+/** Unpacking asks where the items went, then needs the box ID typed in, so nobody does it by accident. */
 function UnpackBox({
   boxId,
   where,
+  otherLocations,
   busy,
   onUnpack,
 }: {
   boxId: string;
   where: string | null;
+  otherLocations: Location[];
   busy: boolean;
-  onUnpack: () => Promise<void>;
+  onUnpack: (plan: UnpackPlan) => Promise<void>;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [choice, setChoice] = useState<Choice>("stay");
+  const [moveTo, setMoveTo] = useState("");
   const [typed, setTyped] = useState("");
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const matches = typed.trim().toUpperCase() === boxId;
+  const target = otherLocations.find((l) => l.location_id === moveTo) ?? null;
+  const ready = typed.trim().toUpperCase() === boxId && (choice !== "move" || target !== null);
+
+  const choices: { value: Choice; title: string; text: string }[] = where
+    ? [
+        { value: "stay", title: `Still at ${where}`, text: "The items are loose there now. Nothing changes in ScanPower." },
+        { value: "move", title: "Moved to another location", text: `ScanPower moves the units from ${where} to the location you pick.` },
+        { value: "remove", title: "Removed from stock", text: `Damaged, lost or thrown out. ScanPower takes the units off ${where}.` },
+      ]
+    : [];
+
+  function reset() {
+    setConfirming(false);
+    setChoice("stay");
+    setMoveTo("");
+    setTyped("");
+    setError(null);
+  }
 
   async function unpack() {
     setWorking(true);
     setError(null);
     try {
-      await onUnpack();
+      await onUnpack(choice === "move" && target ? { kind: "move", to: target } : { kind: choice === "remove" ? "remove" : "stay" });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Please try again.");
       setWorking(false);
@@ -470,7 +509,7 @@ function UnpackBox({
       <h2 className="text-lg font-bold">Unpack this box</h2>
       <p className="mt-1 text-sm text-navy-soft">
         {where
-          ? `Use this when the box is opened and its items are taken out. Nothing changes in ScanPower: the units stay counted at ${where}.`
+          ? "Use this when the box is opened and its items are taken out."
           : "Use this if the box was sealed by mistake or opened before it was put away. Nothing changes in ScanPower."}{" "}
         The box record is kept as Unpacked, with its history.
       </p>
@@ -481,6 +520,48 @@ function UnpackBox({
         </button>
       ) : (
         <div className="mt-4 rounded-[4px] border-2 border-red-deep bg-red-soft p-4">
+          {choices.length > 0 && (
+            <fieldset className="mb-4">
+              <legend className="text-sm font-bold text-navy">Where are the items now?</legend>
+              <div className="mt-2 space-y-2">
+                {choices.map((c) => (
+                  <label
+                    key={c.value}
+                    className={`flex cursor-pointer gap-3 rounded-[4px] border bg-white px-3 py-2.5 ${
+                      choice === c.value ? "border-navy" : "border-line"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="unpack-choice"
+                      className="mt-1 accent-navy"
+                      checked={choice === c.value}
+                      onChange={() => setChoice(c.value)}
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-navy">{c.title}</span>
+                      <span className="block text-xs text-navy-soft">{c.text}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {choice === "move" && (
+                <select
+                  aria-label="Move the items to"
+                  className="input mt-2"
+                  value={moveTo}
+                  onChange={(e) => setMoveTo(e.target.value)}
+                >
+                  <option value="">Choose a location</option>
+                  {otherLocations.map((l) => (
+                    <option key={l.location_id} value={l.location_id}>
+                      {l.location_name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </fieldset>
+          )}
           <p className="text-sm font-bold text-navy">This can’t be undone.</p>
           <label className="mt-2 block text-sm text-navy" htmlFor="confirm-unpack">
             To confirm, type <span className="font-mono font-bold">{boxId}</span>
@@ -489,23 +570,15 @@ function UnpackBox({
             id="confirm-unpack"
             className="input mt-1.5 font-mono"
             autoComplete="off"
-            autoFocus
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
           />
           {error && <p className="mt-2 text-sm font-semibold text-red-deep">{error}</p>}
           <div className="mt-3 flex gap-2">
-            <button
-              className="btn-ghost btn-sm flex-1"
-              onClick={() => {
-                setConfirming(false);
-                setTyped("");
-                setError(null);
-              }}
-            >
+            <button className="btn-ghost btn-sm flex-1" onClick={reset}>
               Cancel
             </button>
-            <button className="btn-danger btn-sm flex-1" disabled={!matches || working} onClick={unpack}>
+            <button className="btn-danger btn-sm flex-1" disabled={!ready || working} onClick={unpack}>
               {working ? "Unpacking…" : "Unpack box"}
             </button>
           </div>

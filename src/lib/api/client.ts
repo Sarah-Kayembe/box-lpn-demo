@@ -10,11 +10,14 @@ import type {
   ItemLocation,
   NewPackTemplate,
 } from "../types";
-import { locationChangeCalls, removeFromShelfCalls, type ApiCall } from "./payloads";
+import { locationChangeCalls, moveCalls, removeFromShelfCalls, type ApiCall } from "./payloads";
 import { MODE } from "../mode";
 import { boxTagStore } from "./box-tag-store";
 import { liveScanPower } from "./live";
 import { mockScanPower } from "./mock";
+
+/** What happens to a box's items when it's unpacked. */
+export type UnpackPlan = { kind: "stay" } | { kind: "move"; to: Location } | { kind: "remove" };
 
 /** The ScanPower calls BoxTag needs. Mock and live both implement this. */
 export interface ScanPowerSource {
@@ -77,14 +80,28 @@ export const api = {
     return { box, problem };
   },
 
-  /** Marks the box Unpacked. Nothing is sent to ScanPower: its units stay counted where they are. */
-  async unpackBoxTag(id: string, locationName?: string) {
+  /**
+   * Marks the box Unpacked and, for a box at a location, updates ScanPower to
+   * match where its items went: left there, moved to another location, or
+   * taken out of stock. If ScanPower refuses, the box stays as it was.
+   */
+  async unpackBoxTag(id: string, plan: UnpackPlan, fromName?: string) {
     const tag = await boxTagStore.get(id);
     if (!tag) throw new Error(`Box ${id} was not found`);
     if (tag.status === "shipped") throw new Error(`Box ${id} is in a shipment and can’t be unpacked here`);
     if (tag.status === "unpacked") throw new Error(`Box ${id} was already unpacked`);
-    const note = locationName ? `Unpacked at ${locationName}. Its units stay counted there` : "Unpacked before it was put away";
-    return boxTagStore.unpack(id, note);
+
+    if (!tag.location_id) return boxTagStore.unpack(id, "Unpacked before it was put away");
+    const from = fromName ?? "its location";
+    if (plan.kind === "move") {
+      await source.sendLocationCalls(moveCalls(tag, tag.location_id, plan.to.location_id));
+      return boxTagStore.unpack(id, `Unpacked. It was at ${from}, and its items were moved to ${plan.to.location_name}`);
+    }
+    if (plan.kind === "remove") {
+      await source.sendLocationCalls(removeFromShelfCalls(tag, tag.location_id));
+      return boxTagStore.unpack(id, `Unpacked. It was at ${from}, and its items were taken out of stock`);
+    }
+    return boxTagStore.unpack(id, `Unpacked. It was at ${from}, and its items stay counted there`);
   },
 
   async resetDemo() {
