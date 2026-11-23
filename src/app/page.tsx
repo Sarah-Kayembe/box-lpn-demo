@@ -12,7 +12,7 @@ import type { BoxTag } from "@/lib/types";
 const steps = [
   { title: "Pack", text: "Scan items into a box and seal it." },
   { title: "Label", text: "Print one 4 × 6 barcode for the box and everything in it." },
-  { title: "Store", text: "Put it on a shelf. The label remembers where." },
+  { title: "Store", text: "Put it away at a location. The label remembers where." },
   { title: "Ship", text: "Scan it later and add the whole box to a shipment." },
 ];
 
@@ -35,7 +35,7 @@ export default function Home() {
           One barcode for the box and everything inside it.
         </h1>
         <p className="mt-3 max-w-xl text-navy-soft">
-          Pack ahead of time, store boxes on your shelves, and ship them whenever the shipment is
+          Pack ahead of time, store boxes at your locations, and ship them whenever the shipment is
           ready, without opening a single box to check what’s in it.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
@@ -51,8 +51,8 @@ export default function Home() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Boxes on shelves" value={stored.length} />
-        <Stat label="Units on shelves" value={unitsOnShelves} />
+        <Stat label="Boxes put away" value={stored.length} />
+        <Stat label="Units put away" value={unitsOnShelves} />
         <Stat label="Waiting to be put away" value={waiting.length} tone={waiting.length ? "warn" : undefined} />
       </section>
 

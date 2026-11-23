@@ -257,8 +257,7 @@ export default function PackPage() {
                     {inv.product.upc && ` · UPC ${inv.product.upc}`}
                     {stockText(inv) && ` · ${stockText(inv)}`}
                     {inv.product.requires_expiration && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-butter/60 bg-butter-soft px-2 py-px font-bold text-butter">
-                        <span className="h-1.5 w-1.5 rounded-full bg-butter" />
+                      <span className="ml-2 inline-flex items-center rounded-full bg-butter px-2 py-px font-bold text-white">
                         needs expiry
                       </span>
                     )}

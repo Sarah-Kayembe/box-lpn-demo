@@ -41,13 +41,11 @@ export function AppHeader() {
         </nav>
 
         {IS_DEMO ? (
-          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-butter/60 bg-butter-soft px-3 py-1 text-[13px] font-bold text-butter">
-            <span className="h-2 w-2 rounded-full bg-butter" aria-hidden="true" />
+          <span className="ml-auto inline-flex items-center rounded-full bg-butter px-3 py-1 text-[13px] font-bold text-white">
             Demo data
           </span>
         ) : (
-          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-mint/50 bg-mint-soft px-3 py-1 text-[13px] font-bold text-mint">
-            <span className="h-2 w-2 rounded-full bg-mint" aria-hidden="true" />
+          <span className="ml-auto inline-flex items-center rounded-full bg-mint px-3 py-1 text-[13px] font-bold text-white">
             Connected to ScanPower
           </span>
         )}
