@@ -4,11 +4,11 @@ import { Icon, type IconName } from "./Icon";
 
 type Tone = "success" | "error" | "info" | "warning";
 
-const tones: Record<Tone, { box: string; badge: string; icon: IconName; role: "status" | "alert" }> = {
+const tones: Record<Tone, { box: string; badge: string; title?: string; icon: IconName; role: "status" | "alert" }> = {
   success: { box: "border-mint bg-mint-soft", badge: "bg-mint", icon: "check", role: "status" },
   error: { box: "border-red-brand bg-red-soft", badge: "bg-red-brand", icon: "alert", role: "alert" },
   info: { box: "border-navy bg-sky-soft", badge: "bg-navy", icon: "info", role: "status" },
-  warning: { box: "border-butter bg-butter-soft", badge: "bg-butter", icon: "alert", role: "status" },
+  warning: { box: "border-butter-edge bg-butter-soft", badge: "bg-butter-edge", title: "text-butter-ink", icon: "alert", role: "status" },
 };
 
 /** Tinted alert with a solid left edge, a filled icon, a bold title and an optional close button. */
@@ -30,7 +30,7 @@ export function Alert({
         <Icon name={t.icon} size={15} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="font-bold text-navy">{title}</p>
+        <p className={`font-bold ${t.title ?? "text-navy"}`}>{title}</p>
         {children && <div className="mt-0.5 text-[15px] text-navy-soft">{children}</div>}
       </div>
       {onClose && (
