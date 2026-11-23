@@ -193,19 +193,21 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
             <h2 className="text-lg font-bold">Where it is</h2>
             {box.status === "shipped" ? (
               <p className="mt-2 text-sm text-navy-soft">
-                Left the shelf. It’s in shipment <span className="font-mono font-semibold text-navy">{box.shipment_id}</span>.
+                Left its location. It’s in shipment <span className="font-mono font-semibold text-navy">{box.shipment_id}</span>.
               </p>
             ) : (
               <>
-                <p className="mt-2 text-sm">
-                  {box.location_id ? (
-                    <>
-                      On <span className="font-semibold">{locationName(box.location_id)}</span>
-                    </>
-                  ) : (
-                    <span className="text-butter">Not put away yet</span>
-                  )}
-                </p>
+                {box.location_id ? (
+                  <div className="mt-3 flex items-center gap-3 rounded-md bg-sky-soft px-4 py-3">
+                    <Icon name="pin" size={22} className="shrink-0 text-navy" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wide text-navy-soft">Location</p>
+                      <p className="text-xl font-bold leading-tight">{locationName(box.location_id)}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-butter">Not put away yet</p>
+                )}
                 <label className="label mt-4" htmlFor="location">
                   {box.location_id ? "Move to" : "Put away at"}
                 </label>
@@ -253,8 +255,8 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
 
                 {shelf && box.location_id && (
                   <div className="mt-5 border-t border-line pt-4">
-                    <p className="text-sm font-bold">On {locationName(box.location_id)} in ScanPower</p>
-                    <p className="text-xs text-navy-soft">Every box on this shelf, counted by SKU.</p>
+                    <p className="text-sm font-bold">At {locationName(box.location_id)} in ScanPower</p>
+                    <p className="text-xs text-navy-soft">Everything at this location, counted by SKU.</p>
                     <ul className="mt-2 divide-y divide-line text-sm">
                       {shelf.map((row) => (
                         <li key={row.sku} className="flex justify-between py-1.5">
@@ -316,7 +318,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                       />
                       {box.location_id &&
                         removeFromShelfCalls(box, box.location_id).map((c, n) => (
-                          <Payload key={n} title={`${n + 3}. ${c.method} ${c.path} (take off the shelf)`} body={c.body} />
+                          <Payload key={n} title={`${n + 3}. ${c.method} ${c.path} (take off this location)`} body={c.body} />
                         ))}
                     </div>
                   )}
