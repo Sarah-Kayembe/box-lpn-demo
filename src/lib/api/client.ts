@@ -7,6 +7,7 @@ import type {
   PackTemplate,
   PackTemplateItem,
   LocationItem,
+  ItemLocation,
   NewPackTemplate,
 } from "../types";
 import { locationChangeCalls, removeFromShelfCalls, type ApiCall } from "./payloads";
@@ -25,8 +26,10 @@ export interface ScanPowerSource {
   /** Creates one pack template with its SKUs and returns it. */
   createPackTemplate(template: NewPackTemplate): Promise<PackTemplate>;
   listOpenShipments(): Promise<AzShipment[]>;
-  /** What ScanPower has on one shelf, per SKU. */
+  /** What ScanPower has at one location, per SKU. */
   listLocationItems(locationId: string): Promise<LocationItem[]>;
+  /** Every SKU at every location, or only the given SKU's locations. */
+  listItemLocations(sku?: string): Promise<ItemLocation[]>;
   /** Sends location updates one by one, in order. */
   sendLocationCalls(calls: ApiCall[]): Promise<void>;
   /** Creates the shipment box and its items. Returns the new box_id. */
@@ -82,6 +85,7 @@ function bind(s: ScanPowerSource): ScanPowerSource {
     createPackTemplate: s.createPackTemplate.bind(s),
     listOpenShipments: s.listOpenShipments.bind(s),
     listLocationItems: s.listLocationItems.bind(s),
+    listItemLocations: s.listItemLocations.bind(s),
     sendLocationCalls: s.sendLocationCalls.bind(s),
     addBoxToShipment: s.addBoxToShipment.bind(s),
   };

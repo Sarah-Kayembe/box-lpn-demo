@@ -63,6 +63,13 @@ export interface LocationItem {
   fulfillable: number;
 }
 
+/** GET /v3/location/items  ->  item_locations[] (trimmed): one SKU at one location */
+export interface ItemLocation {
+  location_id: string;
+  sku: string;
+  fulfillable: number;
+}
+
 /** GET /v3/pack-template/{pack_template_id}/items  ->  pack_template_items[] */
 export interface PackTemplateItem {
   pack_template_id: string;

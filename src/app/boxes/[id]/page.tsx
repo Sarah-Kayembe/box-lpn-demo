@@ -200,10 +200,16 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                 {box.location_id ? (
                   <div className="mt-3 flex items-center gap-3 rounded-md bg-sky-soft px-4 py-3">
                     <Icon name="pin" size={22} className="shrink-0 text-navy" />
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold uppercase tracking-wide text-navy-soft">Location</p>
                       <p className="text-xl font-bold leading-tight">{locationName(box.location_id)}</p>
                     </div>
+                    <Link
+                      href={`/locations?id=${encodeURIComponent(box.location_id)}`}
+                      className="shrink-0 text-sm font-semibold text-navy underline-offset-2 hover:underline"
+                    >
+                      See what’s there
+                    </Link>
                   </div>
                 ) : (
                   <p className="mt-2 text-sm text-butter">Not put away yet</p>
