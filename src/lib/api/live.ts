@@ -9,7 +9,7 @@ import { createPackTemplateBody, insertAzBoxBody, mergeAzBoxItemsBody } from "./
  * OpenAPI document.
  */
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
+export async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api/scanpower${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
@@ -22,7 +22,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-const SHIP_FROM_ID = process.env.NEXT_PUBLIC_SCANPOWER_SHIP_FROM_ID ?? "";
+export const SHIP_FROM_ID = process.env.NEXT_PUBLIC_SCANPOWER_SHIP_FROM_ID ?? "";
 
 export const liveScanPower: ScanPowerSource = {
   async listInventory(search = "") {

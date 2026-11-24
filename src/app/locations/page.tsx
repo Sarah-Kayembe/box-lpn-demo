@@ -8,6 +8,8 @@ import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
 import { totalUnits } from "@/lib/format";
+import { IS_DEMO } from "@/lib/mode";
+import { AddTestStock } from "./AddTestStock";
 import type { BoxTag, InventoryItem, ItemLocation, Location } from "@/lib/types";
 
 /*
@@ -34,6 +36,7 @@ function Locations() {
   const [boxes, setBoxes] = useState<BoxTag[]>([]);
   const [products, setProducts] = useState<Map<string, Product>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     Promise.all([api.listLocations(), api.listItemLocations(), api.listBoxTags(), api.listInventory()])
@@ -47,7 +50,7 @@ function Locations() {
         setLocations([]);
         setError(e instanceof Error ? e.message : "Couldn’t load locations.");
       });
-  }, []);
+  }, [version]);
 
   const name = (id: string) => locations?.find((l) => l.location_id === id)?.location_name ?? id;
   const detailRef = useRef<HTMLElement>(null);
@@ -98,6 +101,10 @@ function Locations() {
       )}
 
       <FindSku products={products} name={name} onPick={select} />
+
+      {!IS_DEMO && locations && locations.length > 0 && (
+        <AddTestStock locations={locations} onAdded={() => setVersion((v) => v + 1)} />
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
         <section className="card min-w-0">
