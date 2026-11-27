@@ -1,7 +1,7 @@
 import type { AzShipment, InventoryItem, ItemLocation, Location, LocationItem, PackTemplate, PackTemplateItem } from "../types";
 import type { ScanPowerSource } from "./client";
 import { inventorySearches, looksLikeFnsku, toInventoryItem, type RawInventoryItem } from "./scanpower-inventory";
-import { createPackTemplateBody, insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
+import { createPackTemplateBody, fromHundredths, insertAzBoxBody, mergeAzBoxItemsBody } from "./payloads";
 
 /*
  * Talks to the real ScanPower API through this app's own /api/scanpower
@@ -20,6 +20,17 @@ export async function call<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message);
   }
   return body as T;
+}
+
+/** ScanPower's template sizes and weights are in hundredths; BoxTag shows whole units. */
+function templateFromScanPower<T extends Pick<PackTemplate, "length" | "width" | "height" | "weight">>(t: T): T {
+  return {
+    ...t,
+    length: fromHundredths(Number(t.length)),
+    width: fromHundredths(Number(t.width)),
+    height: fromHundredths(Number(t.height)),
+    weight: t.weight == null ? null : fromHundredths(Number(t.weight)),
+  };
 }
 
 export const SHIP_FROM_ID = process.env.NEXT_PUBLIC_SCANPOWER_SHIP_FROM_ID ?? "";
@@ -61,7 +72,7 @@ export const liveScanPower: ScanPowerSource = {
     return data.pack_templates
       .filter((t) => !t.deleted)
       .map((t) => ({
-        ...t,
+        ...templateFromScanPower(t),
         items: (t.items ?? []).filter((i) => !i.deleted).map(({ sku, quantity }) => ({ sku, quantity })),
       }));
   },
@@ -71,7 +82,7 @@ export const liveScanPower: ScanPowerSource = {
       method: "POST",
       body: JSON.stringify(createPackTemplateBody(input)),
     });
-    return data.pack_templates[0];
+    return templateFromScanPower(data.pack_templates[0]);
   },
 
   async listPackTemplateItems(packTemplateId) {
@@ -140,10 +151,16 @@ export const liveScanPower: ScanPowerSource = {
       body: JSON.stringify(insertAzBoxBody(tag, shipment)),
     });
     const boxId = created.boxes[0].box_id;
-    await call(`/v3/az-box/items`, {
-      method: "PATCH",
-      body: JSON.stringify(mergeAzBoxItemsBody(tag, boxId)),
-    });
+    try {
+      await call(`/v3/az-box/items`, {
+        method: "PATCH",
+        body: JSON.stringify(mergeAzBoxItemsBody(tag, boxId)),
+      });
+    } catch (e) {
+      // Don't leave an empty box in the shipment
+      await call(`/v3/az-box/${encodeURIComponent(boxId)}`, { method: "DELETE" }).catch(() => {});
+      throw e;
+    }
     return boxId;
   },
 };
