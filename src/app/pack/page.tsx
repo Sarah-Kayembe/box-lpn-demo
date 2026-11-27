@@ -61,6 +61,7 @@ export default function PackPage() {
           expires: null,
           manufacturing_lot_code: null,
           image_url: inv.product.images?.[0] ?? null,
+          asin: inv.product.asin ?? null,
           requiresExpiration: Boolean(inv.product.requires_expiration),
         },
       ];
@@ -124,6 +125,7 @@ export default function PackPage() {
           expires: null,
           manufacturing_lot_code: null,
           image_url: inv?.product.images?.[0] ?? null,
+          asin: inv?.product.asin ?? null,
           requiresExpiration: Boolean(inv?.product.requires_expiration),
         });
       }
@@ -188,6 +190,7 @@ export default function PackPage() {
           expires: l.expires,
           manufacturing_lot_code: l.manufacturing_lot_code,
           image_url: l.image_url ?? null,
+          asin: l.asin ?? null,
         })),
         pack_template_id: match.kind === "match" ? match.template.pack_template_id : templateId || null,
         length: num(dims.length),
