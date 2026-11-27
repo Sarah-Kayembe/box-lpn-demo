@@ -110,6 +110,8 @@ export interface BoxTagItem {
   manufacturing_lot_code: string | null;
   /** Main product image, copied from inventory when packed */
   image_url?: string | null;
+  /** Amazon ASIN (ScanPower's external_id), copied from inventory when packed */
+  asin?: string | null;
 }
 
 export interface BoxTagEvent {
