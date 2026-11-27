@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
+import { IS_DEMO } from "@/lib/mode";
 import { AddPill, QuantityPill } from "@/components/QuantityPill";
 import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
@@ -160,6 +161,20 @@ export default function PackPage() {
     setApplied(null);
   }
 
+  /** Takes out the products the template added but keeps its size and weight. */
+  function keepSizeOnly() {
+    if (!applied) return;
+    setLines((current) =>
+      current
+        .map((l) => {
+          const took = applied.added.filter((a) => a.sku === l.sku).reduce((sum, a) => sum + a.quantity, 0);
+          return took ? { ...l, quantity: l.quantity - took } : l;
+        })
+        .filter((l) => l.quantity > 0),
+    );
+    setApplied({ ...applied, added: [] });
+  }
+
   function clearBox() {
     setLines([]);
     setDims({ length: "", width: "", height: "" });
@@ -185,7 +200,9 @@ export default function PackPage() {
 
   // What a new template would be, built from this box
   const newTemplate: NewPackTemplate = {
-    pack_template_name: suggestTemplateName(lines),
+    pack_template_name: lines.length
+      ? suggestTemplateName(lines)
+      : `Box ${dims.length || "?"} × ${dims.width || "?"} × ${dims.height || "?"} in`,
     length: num(dims.length) ?? 0,
     width: num(dims.width) ?? 0,
     height: num(dims.height) ?? 0,
@@ -195,8 +212,8 @@ export default function PackPage() {
     items: lines.map((l) => ({ sku: l.sku, quantity: l.quantity })),
   };
 
-  async function saveTemplate(name: string) {
-    const created = await api.createPackTemplate({ ...newTemplate, pack_template_name: name });
+  async function saveTemplate(template: NewPackTemplate) {
+    const created = await api.createPackTemplate(template);
     setTemplates((current) => [...current, created]);
     return created;
   }
@@ -207,8 +224,8 @@ export default function PackPage() {
 
   const hint = useMemo(() => {
     if (!lines.length) return "Scan or search for an item to start packing.";
-    if (missingExpiry.length) return `Add an expiration date for ${missingExpiry.map((l) => l.sku).join(", ")}.`;
-    return `${units} ${units === 1 ? "unit" : "units"} across ${lines.length} SKU${lines.length > 1 ? "s" : ""}. Ready to seal.`;
+    if (missingExpiry.length) return `Add an expiration date for ${missingExpiry.map((l) => l.title).join(", ")}.`;
+    return `${units} ${units === 1 ? "unit" : "units"} of ${lines.length} ${lines.length > 1 ? "products" : "product"}. Ready to seal.`;
   }, [lines, missingExpiry, units]);
 
   async function seal() {
@@ -289,7 +306,7 @@ export default function PackPage() {
                     {stockText(inv) && ` · ${stockText(inv)}`}
                     {inv.product.requires_expiration && (
                       <span className="ml-2 inline-flex items-center rounded-full bg-butter px-2 py-px font-bold text-white">
-                        needs expiry
+                        needs expiry date
                       </span>
                     )}
                   </p>
@@ -336,17 +353,17 @@ export default function PackPage() {
             </span>
           </div>
 
-          <div className="mt-3">
-            <label className="label" htmlFor="template">
-              Pack template
+          <div className="mt-4">
+            <label className="text-[15px] font-bold" htmlFor="template">
+              Start from a pack template <span className="font-normal text-navy-soft">(optional)</span>
             </label>
             <select
               id="template"
-              className="input"
+              className="input mt-1.5"
               value={templateId}
               onChange={(e) => chooseTemplate(e.target.value)}
             >
-              <option value="">None, I’ll pack it myself (custom size)</option>
+              <option value="">No template, I’ll enter the size myself</option>
               {templates.map((t) => (
                 <option key={t.pack_template_id} value={t.pack_template_id}>
                   {t.pack_template_name} ({t.length} × {t.width} × {t.height} in
@@ -355,7 +372,7 @@ export default function PackPage() {
               ))}
             </select>
             <p className="mt-1.5 text-sm text-navy-soft">
-              A template sets the box size and weight, and fills in its SKUs if it has any.
+              Fills in the box size and weight, and its products if it has any.
             </p>
           </div>
           {applied && (
@@ -364,19 +381,27 @@ export default function PackPage() {
                 {applied.added.length
                   ? `Added ${applied.added.reduce((sum, a) => sum + a.quantity, 0)} units and set the size and weight. Adjust anything that's different in this box.`
                   : "Set the size and weight."}
-                <button className="ml-2 font-bold text-navy underline underline-offset-2" onClick={undoTemplate}>
-                  Undo
-                </button>
+                <span className="mt-1 flex flex-wrap gap-x-4">
+                  {applied.added.length > 0 && (
+                    <button className="font-bold text-navy underline underline-offset-2" onClick={keepSizeOnly}>
+                      Keep size only
+                    </button>
+                  )}
+                  <button className="font-bold text-navy underline underline-offset-2" onClick={undoTemplate}>
+                    Undo
+                  </button>
+                </span>
               </Alert>
             </div>
           )}
 
+          <h3 className="mt-6 text-[15px] font-bold">Products in this box</h3>
           {lines.length === 0 ? (
-            <div className="mt-4 rounded-[4px] border border-dashed border-[#c5d3dc] bg-sky-wash p-8 text-center text-sm text-navy-soft">
-              Nothing in the box yet.
+            <div className="mt-2 rounded-[4px] border border-dashed border-[#c5d3dc] bg-sky-wash p-6 text-center text-sm text-navy-soft">
+              Nothing in the box yet. Scan or search for products to add them.
             </div>
           ) : (
-            <ul className="mt-3 space-y-3">
+            <ul className="mt-2 space-y-3">
               {lines.map((l) => (
                 <li
                   key={l.sku}
@@ -413,7 +438,7 @@ export default function PackPage() {
                       <label className="label" htmlFor={`exp-${l.sku}`}>
                         Expires{" "}
                         {l.requiresExpiration ? (
-                          <span className="text-red-brand">*</span>
+                          <span className="font-normal text-red-deep">(required)</span>
                         ) : (
                           <span className="font-normal text-navy-soft">(optional)</span>
                         )}
@@ -428,12 +453,11 @@ export default function PackPage() {
                     </div>
                     <div>
                       <label className="label" htmlFor={`lot-${l.sku}`}>
-                        Lot code
+                        Lot code <span className="font-normal text-navy-soft">(optional)</span>
                       </label>
                       <input
                         id={`lot-${l.sku}`}
                         className="input"
-                        placeholder="Optional"
                         value={l.manufacturing_lot_code ?? ""}
                         onChange={(e) =>
                           updateLine(l.sku, { manufacturing_lot_code: e.target.value || null })
@@ -446,7 +470,8 @@ export default function PackPage() {
             </ul>
           )}
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <h3 className="mt-6 text-[15px] font-bold">Box size and weight</h3>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
             <div className="grid grid-cols-3 gap-2 sm:col-span-2">
               {(["length", "width", "height"] as const).map((k) => (
                 <div key={k}>
@@ -480,12 +505,11 @@ export default function PackPage() {
             </div>
             <div>
               <label className="label" htmlFor="notes">
-                Notes
+                Notes <span className="font-normal text-navy-soft">(optional)</span>
               </label>
               <input
                 id="notes"
                 className="input"
-                placeholder="Optional"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -493,6 +517,9 @@ export default function PackPage() {
           </div>
 
           <TemplateMatch match={match} draft={newTemplate} onSave={saveTemplate} />
+          {match.kind === "empty" && num(dims.length) && num(dims.width) && num(dims.height) && (
+            <SizeOnlyTemplate draft={{ ...newTemplate, items: [] }} onSave={saveTemplate} />
+          )}
 
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
             <p className={`min-w-[14rem] flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
@@ -507,7 +534,7 @@ export default function PackPage() {
               }}
             >
               <Icon name="printer" />
-              FNSKU labels ({units})
+              Print FNSKU labels ({units})
             </button>
             <button className="btn-accent" disabled={!canSave} onClick={seal}>
               <Icon name="printer" />
@@ -536,9 +563,9 @@ function TemplateMatch({
 }: {
   match: MatchResult;
   draft: NewPackTemplate;
-  onSave: (name: string) => Promise<PackTemplate>;
+  onSave: (template: NewPackTemplate) => Promise<PackTemplate>;
 }) {
-  const [saved, setSaved] = useState<string | null>(null);
+  const [saved, setSaved] = useState<PackTemplate | null>(null);
   if (match.kind === "empty") return null;
 
   if (match.kind === "incomplete") {
@@ -558,7 +585,9 @@ function TemplateMatch({
           <Icon name="check" size={15} />
         </span>
         <div className="min-w-0">
-          {saved === t.pack_template_id && <p className="text-sm font-bold text-navy-soft">Template saved.</p>}
+          {saved?.pack_template_id === t.pack_template_id && (
+            <p className="text-sm font-bold text-navy-soft">Template saved.</p>
+          )}
           <p className="font-bold">Matches pack template “{t.pack_template_name}”</p>
           <p className="text-sm text-navy-soft">
             Same box size, SKUs and quantities, and the weight is within {WEIGHT_TOLERANCE_LB} lb of {t.weight} lb.
@@ -573,18 +602,66 @@ function TemplateMatch({
     <div role="status" className="mt-5 rounded-[4px] border border-dashed border-[#b9c8d2] bg-sky-wash px-4 py-3">
       <p className="font-bold">No pack template matches this box</p>
       <p className="text-sm text-navy-soft">
-        None of your templates has this box size, weight, and these SKUs and quantities. Save it as a template so
-        boxes packed the same way are recognized next time.
+        None of your templates has this size, weight and these products. Save it as a template to reuse it next time.
       </p>
-      <SaveTemplateForm draft={draft} onSave={async (name) => setSaved((await onSave(name)).pack_template_id)} />
+      {saved && (
+        <p className="mt-2 text-sm font-bold">
+          Saved “{saved.pack_template_name}”{saved.items?.length ? "" : " (size and weight only)"}.
+        </p>
+      )}
+      <SaveTemplateForm draft={draft} onSave={async (t) => setSaved({ ...(await onSave(t)), items: t.items })} />
     </div>
   );
 }
 
-/** Names and creates a pack template from the box being packed. */
-function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (name: string) => Promise<void> }) {
+/** Offered when the box is still empty but has a size: saves just the measurements. */
+function SizeOnlyTemplate({
+  draft,
+  onSave,
+}: {
+  draft: NewPackTemplate;
+  onSave: (template: NewPackTemplate) => Promise<PackTemplate>;
+}) {
+  const [saved, setSaved] = useState<string | null>(null);
+  return (
+    <div className="mt-5 rounded-[4px] border border-dashed border-[#b9c8d2] bg-sky-wash px-4 py-3">
+      {saved ? (
+        <p className="text-sm font-bold">Saved “{saved}”. It’s in the template list now.</p>
+      ) : (
+        <>
+          <p className="font-bold">Save this size as a template?</p>
+          <p className="text-sm text-navy-soft">Keeps only the measurements, so you can pick this box size next time.</p>
+        </>
+      )}
+      {!saved && (
+        <SaveTemplateForm
+          draft={draft}
+          sizeOnlyFixed
+          onSave={async (template) => setSaved((await onSave(template)).pack_template_name)}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Names and creates a pack template from the box being packed. With products
+ * in the box, it asks whether the template keeps them or only the size.
+ */
+function SaveTemplateForm({
+  draft,
+  onSave,
+  sizeOnlyFixed = false,
+}: {
+  draft: NewPackTemplate;
+  onSave: (template: NewPackTemplate) => Promise<void>;
+  sizeOnlyFixed?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(draft.pack_template_name);
+  const [withProducts, setWithProducts] = useState(!sizeOnlyFixed);
+  const sizeName = `Box ${draft.length} × ${draft.width} × ${draft.height} in`;
+  const template: NewPackTemplate = { ...draft, pack_template_name: name.trim(), items: withProducts ? draft.items : [] };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCall, setShowCall] = useState(false);
@@ -594,12 +671,12 @@ function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (
       <button
         className="btn-primary btn-sm mt-3"
         onClick={() => {
-          setName(draft.pack_template_name);
+          setName(withProducts ? draft.pack_template_name : sizeName);
           setOpen(true);
         }}
       >
         <Icon name="plus" size={16} />
-        Save as pack template
+        {sizeOnlyFixed ? "Save size as template" : "Save as pack template"}
       </button>
     );
   }
@@ -608,7 +685,7 @@ function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (
     setBusy(true);
     setError(null);
     try {
-      await onSave(name.trim());
+      await onSave(template);
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t save the template");
@@ -619,6 +696,34 @@ function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (
 
   return (
     <div className="mt-3 space-y-2">
+      {!sizeOnlyFixed && (
+        <fieldset>
+          <legend className="label">What should the template keep?</legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            {[
+              { value: false, label: "Size and weight only" },
+              { value: true, label: "Size, weight and products" },
+            ].map((o) => (
+              <label key={o.label} className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="radio"
+                  name="template-keeps"
+                  className="accent-navy"
+                  checked={withProducts === o.value}
+                  onChange={() => {
+                    setWithProducts(o.value);
+                    // Swap the suggested name too, unless it was edited
+                    if (name === draft.pack_template_name || name === sizeName) {
+                      setName(o.value ? draft.pack_template_name : sizeName);
+                    }
+                  }}
+                />
+                {o.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
       <label className="label" htmlFor="template-name">
         Template name
       </label>
@@ -631,8 +736,9 @@ function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (
         onKeyDown={(e) => e.key === "Enter" && name.trim() && save()}
       />
       <p className="text-sm text-navy-soft">
-        {draft.length} × {draft.width} × {draft.height} in, {draft.weight} lb,{" "}
-        {(draft.items ?? []).map((i) => `${i.quantity} × ${i.sku}`).join(", ")}
+        {draft.length} × {draft.width} × {draft.height} in{draft.weight ? `, ${draft.weight} lb` : ""}
+        {withProducts && (draft.items ?? []).length > 0 &&
+          `, ${(draft.items ?? []).map((i) => `${i.quantity} × ${i.sku}`).join(", ")}`}
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <button className="btn-primary btn-sm" disabled={!name.trim() || busy} onClick={save}>
@@ -641,18 +747,20 @@ function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (
         <button className="btn-ghost btn-sm" onClick={() => setOpen(false)} disabled={busy}>
           Cancel
         </button>
-        <button
-          className="ml-auto text-sm font-semibold text-navy-soft underline-offset-2 hover:underline"
-          onClick={() => setShowCall((v) => !v)}
-        >
-          {showCall ? "Hide" : "Show"} the ScanPower API call
-        </button>
+        {IS_DEMO && (
+          <button
+            className="ml-auto text-sm font-semibold text-navy-soft underline-offset-2 hover:underline"
+            onClick={() => setShowCall((v) => !v)}
+          >
+            {showCall ? "Hide" : "Show"} the ScanPower API call
+          </button>
+        )}
       </div>
       {showCall && (
         <div className="rounded-[3px] border border-line bg-white p-3 text-xs">
           <p className="mb-1 font-mono font-semibold">POST /v3/pack-template</p>
           <pre className="max-h-56 overflow-auto font-mono text-[11px] leading-relaxed text-navy-soft">
-            {JSON.stringify(createPackTemplateBody({ ...draft, pack_template_name: name.trim() }), null, 2)}
+            {JSON.stringify(createPackTemplateBody(template), null, 2)}
           </pre>
         </div>
       )}
