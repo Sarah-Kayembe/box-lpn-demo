@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
+import { AddPill, QuantityPill } from "@/components/QuantityPill";
 import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
@@ -248,12 +249,6 @@ export default function PackPage() {
                 <div className="min-w-[11rem] flex-1">
                   <p className="truncate text-sm font-semibold">
                     {inv.product.title}
-                    {inBox > 0 && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-navy px-2 py-px align-middle text-xs font-bold text-white">
-                        <Icon name="check" size={12} />
-                        {inBox} in box
-                      </span>
-                    )}
                   </p>
                   <p className="text-xs text-navy-soft">
                     {inv.sku} · {inv.fnsku}
@@ -266,7 +261,18 @@ export default function PackPage() {
                     )}
                   </p>
                 </div>
-                <AddWithCount title={inv.product.title} onAdd={(n) => addItem(inv, n)} />
+                <div className="ml-auto">
+                  {inBox ? (
+                    <QuantityPill
+                      value={inBox}
+                      title={inv.product.title}
+                      onChange={(n) => updateLine(inv.sku, { quantity: n })}
+                      onRemove={() => removeLine(inv.sku)}
+                    />
+                  ) : (
+                    <AddPill title={inv.product.title} onAdd={() => addItem(inv)} />
+                  )}
+                </div>
               </li>
               );
             })}
@@ -336,18 +342,12 @@ export default function PackPage() {
                         {l.sku} · {l.fnsku}
                       </p>
                     </div>
-                    <Stepper
+                    <QuantityPill
                       value={l.quantity}
-                      onChange={(q) => (q <= 0 ? removeLine(l.sku) : updateLine(l.sku, { quantity: q }))}
+                      title={l.title}
+                      onChange={(n) => updateLine(l.sku, { quantity: n })}
+                      onRemove={() => removeLine(l.sku)}
                     />
-                    <button
-                      className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-transparent text-navy-soft transition hover:border-red-brand/40 hover:bg-red-soft hover:text-red-brand"
-                      onClick={() => removeLine(l.sku)}
-                      aria-label={`Remove ${l.title} from the box`}
-                      title="Remove from box"
-                    >
-                      <Icon name="trash" size={18} />
-                    </button>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <div>
@@ -601,84 +601,4 @@ function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (
 function suggestTemplateName(lines: { quantity: number; title: string }[]) {
   const name = lines.map((l) => `${l.quantity} × ${l.title}`).join(" + ");
   return name.length > 80 ? `${name.slice(0, 78).trimEnd()}…` : name;
-}
-
-/** A quantity box and an Add button, so 100 units go in with one click. */
-function AddWithCount({ title, onAdd }: { title: string; onAdd: (n: number) => void }) {
-  const [count, setCount] = useState("1");
-  const n = Math.max(1, parseInt(count, 10) || 1);
-  return (
-    <div className="ml-auto flex shrink-0 items-center gap-1.5">
-      <input
-        className="h-9 w-14 rounded-full border border-line bg-white text-center text-sm font-semibold focus:border-navy focus:outline-none"
-        inputMode="numeric"
-        aria-label={`How many of ${title} to add`}
-        value={count}
-        onFocus={(e) => e.target.select()}
-        onChange={(e) => setCount(e.target.value.replace(/\D/g, "").slice(0, 4))}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            onAdd(n);
-            setCount("1");
-          }
-        }}
-      />
-      <button
-        className="btn-ghost btn-sm"
-        onClick={() => {
-          onAdd(n);
-          setCount("1");
-        }}
-      >
-        <Icon name="plus" size={16} />
-        Add{n > 1 ? ` ${n}` : ""}
-      </button>
-    </div>
-  );
-}
-
-/*
- * The box's quantity for one product. The number can be typed: it's applied
- * on Enter or when the field loses focus, and erasing it never removes the
- * product (the trash button does that).
- */
-function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(value)), [value]);
-
-  const commit = () => {
-    const n = parseInt(draft, 10);
-    if (n > 0) onChange(n);
-    else setDraft(String(value));
-  };
-
-  return (
-    <div className="flex items-center gap-1">
-      <button
-        className="h-8 w-8 rounded-full text-lg leading-none hover:bg-sky-soft disabled:opacity-40"
-        aria-label="One less"
-        disabled={value <= 1}
-        onClick={() => onChange(value - 1)}
-      >
-        −
-      </button>
-      <input
-        className="h-9 w-16 rounded-full border border-line bg-white text-center text-sm font-semibold focus:border-navy focus:outline-none"
-        inputMode="numeric"
-        value={draft}
-        aria-label="Quantity"
-        onFocus={(e) => e.target.select()}
-        onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 4))}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-      />
-      <button
-        className="h-8 w-8 rounded-full text-lg leading-none hover:bg-sky-soft"
-        aria-label="One more"
-        onClick={() => onChange(value + 1)}
-      >
-        +
-      </button>
-    </div>
-  );
 }
