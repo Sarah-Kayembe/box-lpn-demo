@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import { Alert } from "@/components/Alert";
 import { use, useEffect, useState } from "react";
 import { IS_DEMO } from "@/lib/mode";
+import { daysText, expiryAlert, TOO_CLOSE_DAYS } from "@/lib/expiry";
 import { ProductThumb } from "@/components/ProductThumb";
 import { StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api/client";
@@ -63,6 +64,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
   const shipment = shipments.find((s) => s.shipment_id === shipmentId) ?? null;
   const expiry = earliestExpiry(box);
   const open = box.status === "packed" || box.status === "stored";
+  const shipExpiry = expiryAlert(box);
 
   // SKUs where ScanPower has fewer units at this location than the box holds
   const missing =
@@ -359,6 +361,17 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
           {open && (
             <section className="card">
               <h2 className="text-lg font-bold">Ready to ship?</h2>
+              {shipExpiry && shipExpiry.level !== "soon" && (
+                <div className="mt-3">
+                  <Alert
+                    tone={shipExpiry.level === "expired" ? "error" : "warning"}
+                    title={shipExpiry.level === "expired" ? "This box has expired" : `Under ${TOO_CLOSE_DAYS} days left`}
+                  >
+                    {daysText(shipExpiry.daysLeft)} ({formatDate(shipExpiry.date)}). Amazon wants more than {TOO_CLOSE_DAYS} days of
+                    shelf life and disposes of items within 50 days of expiring, so this box may be refused or thrown out.
+                  </Alert>
+                </div>
+              )}
               <p className="mt-1 text-sm text-navy-soft">
                 Add the whole box to an open shipment. Every item comes along, so nobody has to
                 unpack and rescan.

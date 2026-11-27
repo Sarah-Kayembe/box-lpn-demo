@@ -43,7 +43,9 @@ export default function BoxesPage() {
       ? "Unpacked"
       : b.status === "shipped"
       ? b.shipment_id
-      : (locations.find((l) => l.location_id === b.location_id)?.location_name ?? "Not put away");
+      : b.location_id
+        ? (locations.find((l) => l.location_id === b.location_id)?.location_name ?? `Location ${b.location_id}`)
+        : "Not put away";
 
   return (
     <div className="space-y-5">

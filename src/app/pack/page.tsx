@@ -29,7 +29,13 @@ export default function PackPage() {
   const [weight, setWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [flash, setFlash] = useState<string | null>(null);
-  const [templateNote, setTemplateNote] = useState<string | null>(null);
+  // What the last template added, so it can be undone
+  const [applied, setApplied] = useState<{
+    name: string;
+    added: { sku: string; quantity: number }[];
+    before: { dims: { length: string; width: string; height: string }; weight: string };
+  } | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,17 +106,19 @@ export default function PackPage() {
   /** Templates set the box size and weight, and can also fill the box with their SKUs. */
   async function chooseTemplate(id: string) {
     setTemplateId(id);
-    setTemplateNote(null);
     const t = templates.find((x) => x.pack_template_id === id);
     if (!t) return;
+    const before = { dims, weight };
     setDims({ length: String(t.length), width: String(t.width), height: String(t.height) });
     if (t.weight) setWeight(String(t.weight));
 
     const items = await api.listPackTemplateItems(id);
-    if (!items.length) return;
+    const added = items.map(({ sku, quantity }) => ({ sku, quantity }));
+    // Undo is offered only once the products are in, so it always has something to take back
+    if (!items.length) return setApplied({ name: t.pack_template_name, added, before });
     const all = await api.listInventory();
     setLines((current) => {
-      const next = [...current];
+      const next = current.map((l) => ({ ...l }));
       for (const ti of items) {
         const existing = next.find((l) => l.sku === ti.sku);
         if (existing) {
@@ -130,13 +138,38 @@ export default function PackPage() {
           requiresExpiration: Boolean(inv?.product.requires_expiration),
         });
       }
-      return next.map((l) => ({ ...l }));
+      return next;
     });
-    const units = items.reduce((sum, i) => sum + i.quantity, 0);
-    setTemplateNote(
-      `Added ${units} units from “${t.pack_template_name}”. Adjust the quantities if this box is different.`,
-    );
+    setApplied({ name: t.pack_template_name, added, before });
   }
+
+  /** Takes back what the last template added and restores the size and weight from before it. */
+  function undoTemplate() {
+    if (!applied) return;
+    setLines((current) =>
+      current
+        .map((l) => {
+          const took = applied.added.filter((a) => a.sku === l.sku).reduce((sum, a) => sum + a.quantity, 0);
+          return took ? { ...l, quantity: l.quantity - took } : l;
+        })
+        .filter((l) => l.quantity > 0),
+    );
+    setDims(applied.before.dims);
+    setWeight(applied.before.weight);
+    setTemplateId("");
+    setApplied(null);
+  }
+
+  function clearBox() {
+    setLines([]);
+    setDims({ length: "", width: "", height: "" });
+    setWeight("");
+    setNotes("");
+    setTemplateId("");
+    setApplied(null);
+    setConfirmClear(false);
+  }
+
 
   const num = (v: string) => (v.trim() && !Number.isNaN(Number(v)) ? Number(v) : null);
 
@@ -286,8 +319,20 @@ export default function PackPage() {
         <section className="card flex min-w-0 flex-col">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-bold">This box</h2>
-            <span className="text-sm text-navy-soft">
+            <span className="flex items-baseline gap-3 text-sm text-navy-soft">
               {units} {units === 1 ? "unit" : "units"}
+              {(lines.length > 0 || dims.length || weight) && (
+                <button
+                  className={`font-semibold underline-offset-2 hover:underline ${confirmClear ? "text-red-deep" : "text-navy"}`}
+                  onClick={() => {
+                    if (confirmClear) return clearBox();
+                    setConfirmClear(true);
+                    setTimeout(() => setConfirmClear(false), 3000);
+                  }}
+                >
+                  {confirmClear ? "Tap again to clear" : "Clear box"}
+                </button>
+              )}
             </span>
           </div>
 
@@ -313,10 +358,15 @@ export default function PackPage() {
               A template sets the box size and weight, and fills in its SKUs if it has any.
             </p>
           </div>
-          {templateNote && (
+          {applied && (
             <div className="mt-3">
-              <Alert tone="info" title="Template applied" onClose={() => setTemplateNote(null)}>
-                {templateNote}
+              <Alert tone="info" title={`Template “${applied.name}” applied`} onClose={() => setApplied(null)}>
+                {applied.added.length
+                  ? `Added ${applied.added.reduce((sum, a) => sum + a.quantity, 0)} units and set the size and weight. Adjust anything that's different in this box.`
+                  : "Set the size and weight."}
+                <button className="ml-2 font-bold text-navy underline underline-offset-2" onClick={undoTemplate}>
+                  Undo
+                </button>
               </Alert>
             </div>
           )}
@@ -347,12 +397,26 @@ export default function PackPage() {
                       title={l.title}
                       onChange={(n) => updateLine(l.sku, { quantity: n })}
                       onRemove={() => removeLine(l.sku)}
+                      trashAtOne={false}
                     />
+                    <button
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-navy-soft transition hover:bg-red-soft hover:text-red-deep"
+                      onClick={() => removeLine(l.sku)}
+                      aria-label={`Remove ${l.title} from the box`}
+                      title="Remove from box"
+                    >
+                      <Icon name="trash" size={18} />
+                    </button>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <div>
                       <label className="label" htmlFor={`exp-${l.sku}`}>
-                        Expires {l.requiresExpiration && <span className="text-red-brand">*</span>}
+                        Expires{" "}
+                        {l.requiresExpiration ? (
+                          <span className="text-red-brand">*</span>
+                        ) : (
+                          <span className="font-normal text-navy-soft">(optional)</span>
+                        )}
                       </label>
                       <input
                         id={`exp-${l.sku}`}
