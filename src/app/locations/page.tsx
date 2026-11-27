@@ -137,8 +137,9 @@ function Locations() {
                         )}
                       </span>
                       <span className="mt-0.5 block text-sm text-navy-soft">
-                        {s.units} units · {s.skus} {s.skus === 1 ? "SKU" : "SKUs"} · {s.boxes}{" "}
-                        {s.boxes === 1 ? "box" : "boxes"}
+                        {s.units || s.boxes
+                          ? `${s.units} units · ${s.skus} ${s.skus === 1 ? "SKU" : "SKUs"} · ${s.boxes} ${s.boxes === 1 ? "box" : "boxes"}`
+                          : "Empty"}
                       </span>
                     </span>
                   </button>

@@ -209,10 +209,12 @@ export default function ScanPage() {
         <p className="text-center text-xs text-navy-soft">
           Try one of the demo boxes:{" "}
           {["BT-000101", "BT-000102", "BT-000103"].map((id, n) => (
-            <button key={id} className="font-mono font-semibold text-navy underline-offset-2 hover:underline" onClick={() => open(id)}>
-              {id}
-              {n < 2 ? ", " : ""}
-            </button>
+            <span key={id}>
+              {n > 0 && ", "}
+              <button className="font-mono font-semibold text-navy underline-offset-2 hover:underline" onClick={() => open(id)}>
+                {id}
+              </button>
+            </span>
           ))}
         </p>
       )}
