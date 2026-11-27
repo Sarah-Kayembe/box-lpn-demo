@@ -221,7 +221,10 @@ export default function PackPage() {
 
   // Templates with products come from boxes packed before; the rest are box sizes
   const productTemplates = templates.filter((t) => (t.items?.length ?? 0) > 0);
-  const boxSizes = templates.filter((t) => !(t.items?.length ?? 0));
+  // Smallest to largest, so similar sizes sit together
+  const boxSizes = templates
+    .filter((t) => !(t.items?.length ?? 0))
+    .sort((a, b) => a.length * a.width * a.height - b.length * b.width * b.height);
 
   /** Fills in a saved box size without touching the products. */
   function applyBoxSize(size: PackTemplate | undefined) {
