@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
  */
 
 const BASE = process.env.SCANPOWER_BASE_URL ?? "https://beta.scanpower.com/api";
-const ALLOWED = [/^v3\/inventory$/, /^v3\/location$/, /^v3\/location\/[^/]+\/items$/, /^v3\/location\/items$/, /^v3\/location\/transfer$/, /^v3\/pack-template$/, /^v3\/pack-template\/[^/]+\/items$/, /^v3\/az-shipment$/, /^v3\/az-box(\/items)?$/, /^v3\/purchase-order$/, /^v3\/purchase-order\/[^/]+\/items$/];
+const ALLOWED = [/^v3\/inventory$/, /^v3\/location$/, /^v3\/location\/[^/]+\/items$/, /^v3\/location\/items$/, /^v3\/location\/transfer$/, /^v3\/pack-template$/, /^v3\/pack-template\/[^/]+\/items$/, /^v3\/az-shipment$/, /^v3\/az-box(\/items)?$/, /^v3\/az-box\/\d+$/, /^v3\/purchase-order$/, /^v3\/purchase-order\/[^/]+\/items$/];
 
 let token: { value: string; expiresAt: number } | null = null;
 

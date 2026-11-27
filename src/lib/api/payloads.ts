@@ -35,7 +35,7 @@ export function mergeAzBoxItemsBody(tag: BoxTag, boxId: string | number) {
       box_id: boxId,
       sku: i.sku,
       fnsku: i.fnsku,
-      quantity: i.quantity,
+      set_quantity: i.quantity,
       expires: i.expires ? `${i.expires}T00:00:00.000Z` : null,
       manufacturing_lot_code: i.manufacturing_lot_code,
     })),
@@ -85,17 +85,25 @@ export function locationChangeCalls(tag: BoxTag, toId: string): ApiCall[] {
 
 /* ---------- Pack templates ---------- */
 
+/*
+ * ScanPower keeps pack template sizes and weights in hundredths: 1000 means
+ * 10.00 in, 1400 means 14.00 lb. BoxTag works in whole units and converts here.
+ */
+const HUNDREDTHS = 100;
+export const toHundredths = (n: number) => Math.round(n * HUNDREDTHS);
+export const fromHundredths = (n: number) => n / HUNDREDTHS;
+
 /** POST /v3/pack-template, with the template's SKUs included in the same call */
 export function createPackTemplateBody(template: NewPackTemplate) {
   return {
     pack_templates: [
       {
         pack_template_name: template.pack_template_name,
-        length: template.length,
-        width: template.width,
-        height: template.height,
+        length: toHundredths(template.length),
+        width: toHundredths(template.width),
+        height: toHundredths(template.height),
         unit_of_measurement: template.unit_of_measurement,
-        weight: template.weight,
+        weight: template.weight == null ? null : toHundredths(template.weight),
         unit_of_weight: template.unit_of_weight,
         items: (template.items ?? []).map(({ sku, quantity }) => ({ sku, quantity })),
       },
