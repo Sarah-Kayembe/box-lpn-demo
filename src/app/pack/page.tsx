@@ -45,11 +45,11 @@ export default function PackPage() {
     };
   }, [search]);
 
-  function addItem(inv: InventoryItem) {
+  function addItem(inv: InventoryItem, count = 1) {
     setLines((current) => {
       const existing = current.find((l) => l.sku === inv.sku);
       if (existing) {
-        return current.map((l) => (l.sku === inv.sku ? { ...l, quantity: l.quantity + 1 } : l));
+        return current.map((l) => (l.sku === inv.sku ? { ...l, quantity: l.quantity + count } : l));
       }
       return [
         ...current,
@@ -57,7 +57,7 @@ export default function PackPage() {
           sku: inv.sku,
           fnsku: inv.fnsku,
           title: inv.product.title,
-          quantity: 1,
+          quantity: count,
           expires: null,
           manufacturing_lot_code: null,
           image_url: inv.product.images?.[0] ?? null,
@@ -240,12 +240,12 @@ export default function PackPage() {
               return (
               <li
                 key={inv.sku}
-                className={`flex items-center gap-3 border-l-4 py-3 pr-1 pl-3 transition ${
+                className={`flex flex-wrap items-center gap-3 border-l-4 py-3 pr-1 pl-3 transition ${
                   inBox ? "border-l-navy bg-sky-soft" : "border-l-transparent"
                 }`}
               >
                 <ProductThumb src={inv.product.images?.[0]} title={inv.product.title} size={44} />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-[11rem] flex-1">
                   <p className="truncate text-sm font-semibold">
                     {inv.product.title}
                     {inBox > 0 && (
@@ -266,10 +266,7 @@ export default function PackPage() {
                     )}
                   </p>
                 </div>
-                <button className="btn-ghost btn-sm" onClick={() => addItem(inv)}>
-                  <Icon name="plus" size={16} />
-                  {inBox ? "Add 1" : "Add"}
-                </button>
+                <AddWithCount title={inv.product.title} onAdd={(n) => addItem(inv, n)} />
               </li>
               );
             })}
@@ -606,22 +603,74 @@ function suggestTemplateName(lines: { quantity: number; title: string }[]) {
   return name.length > 80 ? `${name.slice(0, 78).trimEnd()}…` : name;
 }
 
-function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+/** A quantity box and an Add button, so 100 units go in with one click. */
+function AddWithCount({ title, onAdd }: { title: string; onAdd: (n: number) => void }) {
+  const [count, setCount] = useState("1");
+  const n = Math.max(1, parseInt(count, 10) || 1);
   return (
-    <div className="flex items-center rounded-full border border-line">
+    <div className="ml-auto flex shrink-0 items-center gap-1.5">
+      <input
+        className="h-9 w-14 rounded-full border border-line bg-white text-center text-sm font-semibold focus:border-navy focus:outline-none"
+        inputMode="numeric"
+        aria-label={`How many of ${title} to add`}
+        value={count}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => setCount(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            onAdd(n);
+            setCount("1");
+          }
+        }}
+      />
       <button
-        className="h-8 w-8 rounded-full text-lg leading-none hover:bg-sky-soft"
+        className="btn-ghost btn-sm"
+        onClick={() => {
+          onAdd(n);
+          setCount("1");
+        }}
+      >
+        <Icon name="plus" size={16} />
+        Add{n > 1 ? ` ${n}` : ""}
+      </button>
+    </div>
+  );
+}
+
+/*
+ * The box's quantity for one product. The number can be typed: it's applied
+ * on Enter or when the field loses focus, and erasing it never removes the
+ * product (the trash button does that).
+ */
+function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+
+  const commit = () => {
+    const n = parseInt(draft, 10);
+    if (n > 0) onChange(n);
+    else setDraft(String(value));
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        className="h-8 w-8 rounded-full text-lg leading-none hover:bg-sky-soft disabled:opacity-40"
         aria-label="One less"
+        disabled={value <= 1}
         onClick={() => onChange(value - 1)}
       >
         −
       </button>
       <input
-        className="w-12 bg-transparent text-center text-sm font-semibold outline-none"
+        className="h-9 w-16 rounded-full border border-line bg-white text-center text-sm font-semibold focus:border-navy focus:outline-none"
         inputMode="numeric"
-        value={value}
+        value={draft}
         aria-label="Quantity"
-        onChange={(e) => onChange(Math.max(0, Number(e.target.value.replace(/\D/g, "")) || 0))}
+        onFocus={(e) => e.target.select()}
+        onChange={(e) => setDraft(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        onBlur={commit}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
       />
       <button
         className="h-8 w-8 rounded-full text-lg leading-none hover:bg-sky-soft"
