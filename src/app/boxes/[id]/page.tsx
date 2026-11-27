@@ -5,6 +5,8 @@ import { Icon } from "@/components/Icon";
 import { Alert } from "@/components/Alert";
 import { use, useEffect, useState } from "react";
 import { IS_DEMO } from "@/lib/mode";
+import { Required } from "@/components/Required";
+import { missingForShipping, sizeWarnings } from "@/lib/box-size";
 import { daysText, expiryAlert, TOO_CLOSE_DAYS } from "@/lib/expiry";
 import { ProductThumb } from "@/components/ProductThumb";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -26,6 +28,8 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
   const [shipments, setShipments] = useState<AzShipment[]>([]);
   const [locationId, setLocationId] = useState("");
   const [shipmentId, setShipmentId] = useState("");
+  // Size and weight typed in at shipping time, for boxes sealed without them
+  const [shipSize, setShipSize] = useState({ length: "", width: "", height: "", weight: "" });
   const [busy, setBusy] = useState<"store" | "ship" | null>(null);
   // Each message shows next to the button that caused it, so nobody has to scroll to find it
   const [message, setMessage] = useState<{
@@ -65,6 +69,18 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
   const expiry = earliestExpiry(box);
   const open = box.status === "packed" || box.status === "stored";
   const shipExpiry = expiryAlert(box);
+  const needsSize = missingForShipping(box);
+  const positive = (v: string) => v.trim() !== "" && Number(v) > 0;
+  const sizeTyped = (["length", "width", "height", "weight"] as const).every((k) => positive(shipSize[k]));
+  const sizeForWarnings = needsSize.length
+    ? {
+        length: Number(shipSize.length) || null,
+        width: Number(shipSize.width) || null,
+        height: Number(shipSize.height) || null,
+        weight: Number(shipSize.weight) || null,
+      }
+    : box;
+  const shipWarnings = sizeWarnings(sizeForWarnings);
 
   // SKUs where ScanPower has fewer units at this location than the box holds
   const missing =
@@ -98,7 +114,9 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
         at: "location",
         tone: "ok",
         title: box.location_id ? `Moved to ${loc.location_name}` : `Put away at ${loc.location_name}`,
-        text: `ScanPower’s location inventory was updated for all ${box.items.length} SKUs in the box.`,
+        text: box.items.length === 1
+          ? "ScanPower’s count was updated for the SKU in the box."
+          : `ScanPower’s counts were updated for all ${box.items.length} SKUs in the box.`,
       });
     } catch (e) {
       setMessage({
@@ -116,6 +134,18 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
     if (!shipment || !box) return;
     setBusy("ship");
     try {
+      // Save the size and weight first if they were missing; Amazon needs them
+      if (missingForShipping(box).length) {
+        const n = (v: string) => Number(v);
+        setBox(
+          await api.setBoxSize(box.box_tag_id, {
+            length: n(shipSize.length),
+            width: n(shipSize.width),
+            height: n(shipSize.height),
+            weight: n(shipSize.weight),
+          }),
+        );
+      }
       const { box: updated, problem } = await api.shipBoxTag(box.box_tag_id, shipment);
       setBox(updated);
       const from = box.location_id ? locationName(box.location_id) : null;
@@ -174,7 +204,8 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
             <div className="flex items-baseline justify-between">
               <h2 className="text-lg font-bold">What’s inside</h2>
               <span className="text-sm text-navy-soft">
-                {totalUnits(box)} units · {box.items.length} SKUs
+                {totalUnits(box)} {totalUnits(box) === 1 ? "unit" : "units"} · {box.items.length}{" "}
+                {box.items.length === 1 ? "SKU" : "SKUs"}
               </span>
             </div>
             <div className="mt-3 overflow-x-auto">
@@ -289,6 +320,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                 )}
                 <label className="label mt-4" htmlFor="location">
                   {box.location_id ? "Move to" : "Put away at"}
+                  <Required />
                 </label>
                 <div className="flex gap-2">
                   <select
@@ -376,8 +408,49 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                 Add the whole box to an open shipment. Every item comes along, so nobody has to
                 unpack and rescan.
               </p>
+              {needsSize.length > 0 && (
+                <div className="mt-4 rounded-[4px] border border-butter-edge bg-butter-soft p-3">
+                  <p className="text-sm font-bold text-butter-ink">Size and weight needed for shipping</p>
+                  <p className="text-sm text-navy-soft">
+                    This box was sealed without its {needsSize.join(" and ")}. Amazon needs both. Enter them once here
+                    and they’re saved on the box.
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {(
+                      [
+                        ["length", "Length (in)"],
+                        ["width", "Width (in)"],
+                        ["height", "Height (in)"],
+                        ["weight", "Weight (lb)"],
+                      ] as const
+                    ).map(([k, label]) => (
+                      <div key={k}>
+                        <label className="label" htmlFor={`ship-${k}`}>
+                          {label}
+                          <Required />
+                        </label>
+                        <input
+                          id={`ship-${k}`}
+                          className="input bg-white"
+                          inputMode="decimal"
+                          value={shipSize[k]}
+                          onChange={(e) => setShipSize((sz) => ({ ...sz, [k]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {shipWarnings.length > 0 && (
+                <ul className="mt-3 space-y-1 text-sm text-butter">
+                  {shipWarnings.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+              )}
               <label className="label mt-4" htmlFor="shipment">
                 Shipment
+                <Required />
               </label>
               <select
                 id="shipment"
@@ -392,7 +465,11 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                   </option>
                 ))}
               </select>
-              <button className="btn-accent mt-3 w-full" disabled={!shipment || busy !== null} onClick={ship}>
+              <button
+                className="btn-accent mt-3 w-full"
+                disabled={!shipment || busy !== null || (needsSize.length > 0 && !sizeTyped)}
+                onClick={ship}
+              >
                 <Icon name="truck" />
                 {busy === "ship" ? "Adding…" : "Add box to shipment"}
               </button>
@@ -559,9 +636,14 @@ function UnpackBox({
                 ))}
               </div>
               {choice === "move" && (
+                <>
+                <label className="label mt-3" htmlFor="unpack-move-to">
+                  Move the items to
+                  <Required />
+                </label>
                 <select
-                  aria-label="Move the items to"
-                  className="input mt-2"
+                  id="unpack-move-to"
+                  className="input"
                   value={moveTo}
                   onChange={(e) => setMoveTo(e.target.value)}
                 >
@@ -572,12 +654,14 @@ function UnpackBox({
                     </option>
                   ))}
                 </select>
+                </>
               )}
             </fieldset>
           )}
           <p className="text-sm font-bold text-navy">This can’t be undone.</p>
           <label className="mt-2 block text-sm text-navy" htmlFor="confirm-unpack">
             To confirm, type <span className="font-mono font-bold">{boxId}</span>
+            <Required />
           </label>
           <input
             id="confirm-unpack"

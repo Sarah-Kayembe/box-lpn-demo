@@ -59,12 +59,17 @@ export const api = {
     return boxTagStore.putAway(id, location);
   },
   markLabelPrinted: (id: string) => boxTagStore.markLabelPrinted(id),
+  setBoxSize: (id: string, size: { length: number; width: number; height: number; weight: number }) =>
+    boxTagStore.setSize(id, size),
 
   async shipBoxTag(id: string, shipment: AzShipment) {
     const tag = await boxTagStore.get(id);
     if (!tag) throw new Error(`Box ${id} was not found`);
     if (tag.status === "shipped") throw new Error(`Box ${id} is already in a shipment`);
     if (tag.status === "unpacked") throw new Error(`Box ${id} was unpacked`);
+    if (!tag.length || !tag.width || !tag.height || !tag.weight) {
+      throw new Error("Amazon needs the box size and weight before it can ship.");
+    }
     const boxId = await source.addBoxToShipment(tag, shipment);
 
     // The box is in the shipment now, so a failed location update must not hide that

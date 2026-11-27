@@ -79,7 +79,7 @@ export default function Home() {
               <Link href={`/boxes/${b.box_tag_id}`} className="flex flex-wrap items-center gap-3 py-3 hover:bg-sky-wash">
                 <span className="font-mono font-bold">{b.box_tag_id}</span>
                 <span className="text-sm text-navy-soft">
-                  {totalUnits(b)} units · packed {formatDate(b.packed_at)}
+                  {totalUnits(b)} {totalUnits(b) === 1 ? "unit" : "units"} · packed {formatDate(b.packed_at)}
                 </span>
                 <span className="ml-auto">
                   <StatusBadge status={b.status} />

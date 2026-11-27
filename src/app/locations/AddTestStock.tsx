@@ -5,6 +5,7 @@ import { api } from "@/lib/api/client";
 import { SHIP_FROM_ID } from "@/lib/api/live";
 import { addTestStock, type TestStockStep } from "@/lib/api/test-stock";
 import { Icon } from "@/components/Icon";
+import { Required } from "@/components/Required";
 import type { Location } from "@/lib/types";
 
 /*
@@ -75,6 +76,7 @@ export function AddTestStock({ locations, onAdded }: { locations: Location[]; on
             <div>
               <label className="label" htmlFor="stock-location">
                 Location
+                <Required />
               </label>
               <select
                 id="stock-location"
@@ -93,6 +95,7 @@ export function AddTestStock({ locations, onAdded }: { locations: Location[]; on
             <div>
               <label className="label" htmlFor="stock-sku">
                 SKU
+                <Required />
               </label>
               <input
                 id="stock-sku"
@@ -105,6 +108,7 @@ export function AddTestStock({ locations, onAdded }: { locations: Location[]; on
             <div>
               <label className="label" htmlFor="stock-qty">
                 Units
+                <Required />
               </label>
               <input
                 id="stock-qty"
