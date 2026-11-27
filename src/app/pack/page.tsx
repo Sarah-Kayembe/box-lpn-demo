@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
+import { AddPill, QuantityPill } from "@/components/QuantityPill";
 import { Icon } from "@/components/Icon";
 import { ProductThumb } from "@/components/ProductThumb";
 import { api } from "@/lib/api/client";
@@ -45,11 +46,11 @@ export default function PackPage() {
     };
   }, [search]);
 
-  function addItem(inv: InventoryItem) {
+  function addItem(inv: InventoryItem, count = 1) {
     setLines((current) => {
       const existing = current.find((l) => l.sku === inv.sku);
       if (existing) {
-        return current.map((l) => (l.sku === inv.sku ? { ...l, quantity: l.quantity + 1 } : l));
+        return current.map((l) => (l.sku === inv.sku ? { ...l, quantity: l.quantity + count } : l));
       }
       return [
         ...current,
@@ -57,7 +58,7 @@ export default function PackPage() {
           sku: inv.sku,
           fnsku: inv.fnsku,
           title: inv.product.title,
-          quantity: 1,
+          quantity: count,
           expires: null,
           manufacturing_lot_code: null,
           image_url: inv.product.images?.[0] ?? null,
@@ -240,20 +241,14 @@ export default function PackPage() {
               return (
               <li
                 key={inv.sku}
-                className={`flex items-center gap-3 border-l-4 py-3 pr-1 pl-3 transition ${
+                className={`flex flex-wrap items-center gap-3 border-l-4 py-3 pr-1 pl-3 transition ${
                   inBox ? "border-l-navy bg-sky-soft" : "border-l-transparent"
                 }`}
               >
                 <ProductThumb src={inv.product.images?.[0]} title={inv.product.title} size={44} />
-                <div className="min-w-0 flex-1">
+                <div className="min-w-[11rem] flex-1">
                   <p className="truncate text-sm font-semibold">
                     {inv.product.title}
-                    {inBox > 0 && (
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-navy px-2 py-px align-middle text-xs font-bold text-white">
-                        <Icon name="check" size={12} />
-                        {inBox} in box
-                      </span>
-                    )}
                   </p>
                   <p className="text-xs text-navy-soft">
                     {inv.sku} · {inv.fnsku}
@@ -266,10 +261,18 @@ export default function PackPage() {
                     )}
                   </p>
                 </div>
-                <button className="btn-ghost btn-sm" onClick={() => addItem(inv)}>
-                  <Icon name="plus" size={16} />
-                  {inBox ? "Add 1" : "Add"}
-                </button>
+                <div className="ml-auto">
+                  {inBox ? (
+                    <QuantityPill
+                      value={inBox}
+                      title={inv.product.title}
+                      onChange={(n) => updateLine(inv.sku, { quantity: n })}
+                      onRemove={() => removeLine(inv.sku)}
+                    />
+                  ) : (
+                    <AddPill title={inv.product.title} onAdd={() => addItem(inv)} />
+                  )}
+                </div>
               </li>
               );
             })}
@@ -339,18 +342,12 @@ export default function PackPage() {
                         {l.sku} · {l.fnsku}
                       </p>
                     </div>
-                    <Stepper
+                    <QuantityPill
                       value={l.quantity}
-                      onChange={(q) => (q <= 0 ? removeLine(l.sku) : updateLine(l.sku, { quantity: q }))}
+                      title={l.title}
+                      onChange={(n) => updateLine(l.sku, { quantity: n })}
+                      onRemove={() => removeLine(l.sku)}
                     />
-                    <button
-                      className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-transparent text-navy-soft transition hover:border-red-brand/40 hover:bg-red-soft hover:text-red-brand"
-                      onClick={() => removeLine(l.sku)}
-                      aria-label={`Remove ${l.title} from the box`}
-                      title="Remove from box"
-                    >
-                      <Icon name="trash" size={18} />
-                    </button>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <div>
@@ -604,32 +601,4 @@ function SaveTemplateForm({ draft, onSave }: { draft: NewPackTemplate; onSave: (
 function suggestTemplateName(lines: { quantity: number; title: string }[]) {
   const name = lines.map((l) => `${l.quantity} × ${l.title}`).join(" + ");
   return name.length > 80 ? `${name.slice(0, 78).trimEnd()}…` : name;
-}
-
-function Stepper({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <div className="flex items-center rounded-full border border-line">
-      <button
-        className="h-8 w-8 rounded-full text-lg leading-none hover:bg-sky-soft"
-        aria-label="One less"
-        onClick={() => onChange(value - 1)}
-      >
-        −
-      </button>
-      <input
-        className="w-12 bg-transparent text-center text-sm font-semibold outline-none"
-        inputMode="numeric"
-        value={value}
-        aria-label="Quantity"
-        onChange={(e) => onChange(Math.max(0, Number(e.target.value.replace(/\D/g, "")) || 0))}
-      />
-      <button
-        className="h-8 w-8 rounded-full text-lg leading-none hover:bg-sky-soft"
-        aria-label="One more"
-        onClick={() => onChange(value + 1)}
-      >
-        +
-      </button>
-    </div>
-  );
 }
