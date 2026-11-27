@@ -1,0 +1,13 @@
+   ▲ Next.js 15.5.28
+   - Local:        http://localhost:3127
+   - Network:      http://192.0.2.2:3127
+
+ ✓ Starting...
+ ✓ Ready in 1832ms
+ ○ Compiling /pack ...
+ ✓ Compiled /pack in 3.8s (675 modules)
+ GET /pack 200 in 4256ms
+ GET /pack 200 in 66ms
+ ✓ Compiled in 1161ms (675 modules)
+ GET /pack 200 in 239ms
+ GET /pack 200 in 76ms

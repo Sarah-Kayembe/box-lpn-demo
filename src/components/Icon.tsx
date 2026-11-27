@@ -2,6 +2,7 @@
 
 const paths = {
   plus: "M12 5v14M5 12h14",
+  minus: "M5 12h14",
   arrow: "M5 12h14M13 6l6 6-6 6",
   check: "M5 12.5l4.5 4.5L19 7.5",
   printer: "M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2M7 14h10v6H7z",
