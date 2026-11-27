@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
+import { Required } from "@/components/Required";
 import type { NewPackTemplate, PackTemplate } from "@/lib/types";
 
 /*
@@ -52,10 +53,11 @@ export function BoxSizes({
     }
   }
 
-  const field = (key: keyof typeof form, label: string, extra = "") => (
-    <div className={extra}>
+  const field = (key: keyof typeof form, label: string, required = false) => (
+    <div>
       <label className="label" htmlFor={`size-${key}`}>
         {label}
+        {required && <Required />}
       </label>
       <input
         id={`size-${key}`}
@@ -102,9 +104,9 @@ export function BoxSizes({
         <h3 className="text-[15px] font-bold">Add a box size</h3>
         <p className="mt-0.5 text-sm text-navy-soft">Just the measurements. No products needed.</p>
         <div className="mt-3 grid grid-cols-3 gap-2">
-          {field("length", "Length (in)")}
-          {field("width", "Width (in)")}
-          {field("height", "Height (in)")}
+          {field("length", "Length (in)", true)}
+          {field("width", "Width (in)", true)}
+          {field("height", "Height (in)", true)}
         </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_2fr]">
           {field("weight", "Weight (lb, optional)")}

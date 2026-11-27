@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
 import { Toggle } from "@/components/Toggle";
+import { Required } from "@/components/Required";
+import { missingForShipping, sizeWarnings } from "@/lib/box-size";
 import { BoxSizes } from "./BoxSizes";
 import { IS_DEMO } from "@/lib/mode";
 import { AddPill, QuantityPill } from "@/components/QuantityPill";
@@ -483,7 +485,7 @@ export default function PackPage() {
                           <label className="label" htmlFor={`exp-${l.sku}`}>
                             Expires{" "}
                             {l.requiresExpiration ? (
-                              <span className="font-normal text-red-deep">(required)</span>
+                              <Required />
                             ) : (
                               <span className="font-normal text-navy-soft">(optional)</span>
                             )}
@@ -585,6 +587,27 @@ export default function PackPage() {
                   />
                 </div>
               </div>
+
+              {(() => {
+                const size = { length: num(dims.length), width: num(dims.width), height: num(dims.height), weight: num(weight) };
+                const missing = missingForShipping(size);
+                const warnings = sizeWarnings(size);
+                return (
+                  <>
+                    {lines.length > 0 && missing.length > 0 && (
+                      <p className="mt-3 flex items-start gap-2 text-sm text-butter">
+                        <Icon name="info" size={16} className="mt-0.5 shrink-0" />
+                        No {missing.join(" or ")} yet. You can seal now, but you’ll need them before this box can ship.
+                      </p>
+                    )}
+                    {warnings.map((w) => (
+                      <p key={w} className="mt-2 text-sm text-butter">
+                        {w}
+                      </p>
+                    ))}
+                  </>
+                );
+              })()}
 
               <TemplateMatch match={match} draft={newTemplate} onSave={saveTemplate} />
 
@@ -763,6 +786,7 @@ function SaveTemplateForm({
       )}
       <label className="label" htmlFor="template-name">
         Template name
+        <Required />
       </label>
       <input
         id="template-name"

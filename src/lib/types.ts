@@ -116,7 +116,7 @@ export interface BoxTagItem {
 
 export interface BoxTagEvent {
   at: string;
-  type: "packed" | "stored" | "moved" | "shipped" | "label_printed" | "unpacked";
+  type: "packed" | "stored" | "moved" | "shipped" | "label_printed" | "unpacked" | "measured";
   note: string;
 }
 
