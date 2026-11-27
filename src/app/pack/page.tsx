@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
+import { Toggle } from "@/components/Toggle";
+import { BoxSizes } from "./BoxSizes";
 import { IS_DEMO } from "@/lib/mode";
 import { AddPill, QuantityPill } from "@/components/QuantityPill";
 import { Icon } from "@/components/Icon";
@@ -23,6 +25,9 @@ export default function PackPage() {
   const [search, setSearch] = useState("");
   const [results, setResults] = useState<InventoryItem[]>([]);
   const [templates, setTemplates] = useState<PackTemplate[]>([]);
+  // Off: pack a box. On: manage box sizes (templates with measurements only)
+  const [sizeMode, setSizeMode] = useState(false);
+  const [sizeId, setSizeId] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [dims, setDims] = useState({ length: "", width: "", height: "" });
@@ -212,6 +217,18 @@ export default function PackPage() {
     items: lines.map((l) => ({ sku: l.sku, quantity: l.quantity })),
   };
 
+  // Templates with products come from boxes packed before; the rest are box sizes
+  const productTemplates = templates.filter((t) => (t.items?.length ?? 0) > 0);
+  const boxSizes = templates.filter((t) => !(t.items?.length ?? 0));
+
+  /** Fills in a saved box size without touching the products. */
+  function applyBoxSize(size: PackTemplate | undefined) {
+    setSizeId(size?.pack_template_id ?? "");
+    if (!size) return;
+    setDims({ length: String(size.length), width: String(size.width), height: String(size.height) });
+    if (size.weight) setWeight(String(size.weight));
+  }
+
   async function saveTemplate(template: NewPackTemplate) {
     const created = await api.createPackTemplate(template);
     setTemplates((current) => [...current, created]);
@@ -334,214 +351,266 @@ export default function PackPage() {
 
         {/* The box */}
         <section className="card flex min-w-0 flex-col">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-lg font-bold">This box</h2>
-            <span className="flex items-baseline gap-3 text-sm text-navy-soft">
-              {units} {units === 1 ? "unit" : "units"}
-              {(lines.length > 0 || dims.length || weight) && (
-                <button
-                  className={`font-semibold underline-offset-2 hover:underline ${confirmClear ? "text-red-deep" : "text-navy"}`}
-                  onClick={() => {
-                    if (confirmClear) return clearBox();
-                    setConfirmClear(true);
-                    setTimeout(() => setConfirmClear(false), 3000);
-                  }}
-                >
-                  {confirmClear ? "Tap again to clear" : "Clear box"}
-                </button>
-              )}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-[6px] bg-sky-wash px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="font-bold">Box sizes only</p>
+              <p className="text-xs text-navy-soft">
+                {sizeMode ? "Saving measurements, no products." : "Turn on to save or pick a box size without packing."}
+              </p>
+            </div>
+            <Toggle checked={sizeMode} onChange={setSizeMode} label="Box sizes only" />
           </div>
 
-          <div className="mt-4">
-            <label className="text-[15px] font-bold" htmlFor="template">
-              Start from a pack template <span className="font-normal text-navy-soft">(optional)</span>
-            </label>
-            <select
-              id="template"
-              className="input mt-1.5"
-              value={templateId}
-              onChange={(e) => chooseTemplate(e.target.value)}
-            >
-              <option value="">No template, I’ll enter the size myself</option>
-              {templates.map((t) => (
-                <option key={t.pack_template_id} value={t.pack_template_id}>
-                  {t.pack_template_name} ({t.length} × {t.width} × {t.height} in
-                  {t.weight ? `, ${t.weight} lb` : ""})
-                </option>
-              ))}
-            </select>
-            <p className="mt-1.5 text-sm text-navy-soft">
-              Fills in the box size and weight, and its products if it has any.
-            </p>
-          </div>
-          {applied && (
-            <div className="mt-3">
-              <Alert tone="info" title={`Template “${applied.name}” applied`} onClose={() => setApplied(null)}>
-                {applied.added.length
-                  ? `Added ${applied.added.reduce((sum, a) => sum + a.quantity, 0)} units and set the size and weight. Adjust anything that's different in this box.`
-                  : "Set the size and weight."}
-                <span className="mt-1 flex flex-wrap gap-x-4">
-                  {applied.added.length > 0 && (
-                    <button className="font-bold text-navy underline underline-offset-2" onClick={keepSizeOnly}>
-                      Keep size only
+          {sizeMode ? (
+            <>
+              <h2 className="mt-4 text-lg font-bold">Box sizes</h2>
+              <BoxSizes
+                sizes={boxSizes}
+                onUse={(size) => {
+                  applyBoxSize(size);
+                  setSizeMode(false);
+                }}
+                onCreate={async (size) => {
+                  const created = await api.createPackTemplate(size);
+                  setTemplates((current) => [...current, { ...created, items: [] }]);
+                  return created;
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <div className="mt-4 flex items-baseline justify-between">
+                <h2 className="text-lg font-bold">This box</h2>
+                <span className="flex items-baseline gap-3 text-sm text-navy-soft">
+                  {units} {units === 1 ? "unit" : "units"}
+                  {(lines.length > 0 || dims.length || weight) && (
+                    <button
+                      className={`font-semibold underline-offset-2 hover:underline ${confirmClear ? "text-red-deep" : "text-navy"}`}
+                      onClick={() => {
+                        if (confirmClear) return clearBox();
+                        setConfirmClear(true);
+                        setTimeout(() => setConfirmClear(false), 3000);
+                      }}
+                    >
+                      {confirmClear ? "Tap again to clear" : "Clear box"}
                     </button>
                   )}
-                  <button className="font-bold text-navy underline underline-offset-2" onClick={undoTemplate}>
-                    Undo
-                  </button>
                 </span>
-              </Alert>
-            </div>
-          )}
+              </div>
 
-          <h3 className="mt-6 text-[15px] font-bold">Products in this box</h3>
-          {lines.length === 0 ? (
-            <div className="mt-2 rounded-[4px] border border-dashed border-[#c5d3dc] bg-sky-wash p-6 text-center text-sm text-navy-soft">
-              Nothing in the box yet. Scan or search for products to add them.
-            </div>
-          ) : (
-            <ul className="mt-2 space-y-3">
-              {lines.map((l) => (
-                <li
-                  key={l.sku}
-                  className={`rounded-[4px] border border-l-4 border-sky-brand border-l-navy p-3 transition-colors duration-500 ${
-                    flash === l.sku ? "bg-sky-brand/60" : "bg-sky-soft"
-                  }`}
+              <div className="mt-4">
+                <label className="text-[15px] font-bold" htmlFor="template">
+                  Start from a pack template <span className="font-normal text-navy-soft">(optional)</span>
+                </label>
+                <select
+                  id="template"
+                  className="input mt-1.5"
+                  value={templateId}
+                  onChange={(e) => chooseTemplate(e.target.value)}
                 >
-                  <div className="flex items-start gap-3">
-                    <ProductThumb src={l.image_url} title={l.title} size={40} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold">{l.title}</p>
-                      <p className="text-xs text-navy-soft">
-                        {l.sku} · {l.fnsku}
-                      </p>
-                    </div>
-                    <QuantityPill
-                      value={l.quantity}
-                      title={l.title}
-                      onChange={(n) => updateLine(l.sku, { quantity: n })}
-                      onRemove={() => removeLine(l.sku)}
-                      trashAtOne={false}
-                    />
-                    <button
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-navy-soft transition hover:bg-red-soft hover:text-red-deep"
-                      onClick={() => removeLine(l.sku)}
-                      aria-label={`Remove ${l.title} from the box`}
-                      title="Remove from box"
-                    >
-                      <Icon name="trash" size={18} />
-                    </button>
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="label" htmlFor={`exp-${l.sku}`}>
-                        Expires{" "}
-                        {l.requiresExpiration ? (
-                          <span className="font-normal text-red-deep">(required)</span>
-                        ) : (
-                          <span className="font-normal text-navy-soft">(optional)</span>
-                        )}
-                      </label>
-                      <input
-                        id={`exp-${l.sku}`}
-                        type="date"
-                        className={`input ${l.requiresExpiration && !l.expires ? "border-red-brand/60" : ""}`}
-                        value={l.expires ?? ""}
-                        onChange={(e) => updateLine(l.sku, { expires: e.target.value || null })}
-                      />
-                    </div>
-                    <div>
-                      <label className="label" htmlFor={`lot-${l.sku}`}>
-                        Lot code <span className="font-normal text-navy-soft">(optional)</span>
-                      </label>
-                      <input
-                        id={`lot-${l.sku}`}
-                        className="input"
-                        value={l.manufacturing_lot_code ?? ""}
-                        onChange={(e) =>
-                          updateLine(l.sku, { manufacturing_lot_code: e.target.value || null })
-                        }
-                      />
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  <option value="">No template</option>
+                  {productTemplates.map((t) => (
+                    <option key={t.pack_template_id} value={t.pack_template_id}>
+                      {t.pack_template_name} ({t.length} × {t.width} × {t.height} in
+                      {t.weight ? `, ${t.weight} lb` : ""})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-sm text-navy-soft">
+                  Templates from boxes you packed before. Fills in the products, size and weight.
+                </p>
+              </div>
+              {applied && (
+                <div className="mt-3">
+                  <Alert tone="info" title={`Template “${applied.name}” applied`} onClose={() => setApplied(null)}>
+                    {applied.added.length
+                      ? `Added ${applied.added.reduce((sum, a) => sum + a.quantity, 0)} units and set the size and weight. Adjust anything that's different in this box.`
+                      : "Set the size and weight."}
+                    <span className="mt-1 flex flex-wrap gap-x-4">
+                      {applied.added.length > 0 && (
+                        <button className="font-bold text-navy underline underline-offset-2" onClick={keepSizeOnly}>
+                          Keep size only
+                        </button>
+                      )}
+                      <button className="font-bold text-navy underline underline-offset-2" onClick={undoTemplate}>
+                        Undo
+                      </button>
+                    </span>
+                  </Alert>
+                </div>
+              )}
 
-          <h3 className="mt-6 text-[15px] font-bold">Box size and weight</h3>
-          <div className="mt-2 grid gap-3 sm:grid-cols-2">
-            <div className="grid grid-cols-3 gap-2 sm:col-span-2">
-              {(["length", "width", "height"] as const).map((k) => (
-                <div key={k}>
-                  <label className="label" htmlFor={k}>
-                    {{ length: "Length", width: "Width", height: "Height" }[k]} (in)
+              <h3 className="mt-6 text-[15px] font-bold">Products in this box</h3>
+              {lines.length === 0 ? (
+                <div className="mt-2 rounded-[4px] border border-dashed border-[#c5d3dc] bg-sky-wash p-6 text-center text-sm text-navy-soft">
+                  Nothing in the box yet. Scan or search for products to add them.
+                </div>
+              ) : (
+                <ul className="mt-2 space-y-3">
+                  {lines.map((l) => (
+                    <li
+                      key={l.sku}
+                      className={`rounded-[4px] border border-l-4 border-sky-brand border-l-navy p-3 transition-colors duration-500 ${
+                        flash === l.sku ? "bg-sky-brand/60" : "bg-sky-soft"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <ProductThumb src={l.image_url} title={l.title} size={40} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold">{l.title}</p>
+                          <p className="text-xs text-navy-soft">
+                            {l.sku} · {l.fnsku}
+                          </p>
+                        </div>
+                        <QuantityPill
+                          value={l.quantity}
+                          title={l.title}
+                          onChange={(n) => updateLine(l.sku, { quantity: n })}
+                          onRemove={() => removeLine(l.sku)}
+                          trashAtOne={false}
+                        />
+                        <button
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-navy-soft transition hover:bg-red-soft hover:text-red-deep"
+                          onClick={() => removeLine(l.sku)}
+                          aria-label={`Remove ${l.title} from the box`}
+                          title="Remove from box"
+                        >
+                          <Icon name="trash" size={18} />
+                        </button>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="label" htmlFor={`exp-${l.sku}`}>
+                            Expires{" "}
+                            {l.requiresExpiration ? (
+                              <span className="font-normal text-red-deep">(required)</span>
+                            ) : (
+                              <span className="font-normal text-navy-soft">(optional)</span>
+                            )}
+                          </label>
+                          <input
+                            id={`exp-${l.sku}`}
+                            type="date"
+                            className={`input ${l.requiresExpiration && !l.expires ? "border-red-brand/60" : ""}`}
+                            value={l.expires ?? ""}
+                            onChange={(e) => updateLine(l.sku, { expires: e.target.value || null })}
+                          />
+                        </div>
+                        <div>
+                          <label className="label" htmlFor={`lot-${l.sku}`}>
+                            Lot code <span className="font-normal text-navy-soft">(optional)</span>
+                          </label>
+                          <input
+                            id={`lot-${l.sku}`}
+                            className="input"
+                            value={l.manufacturing_lot_code ?? ""}
+                            onChange={(e) =>
+                              updateLine(l.sku, { manufacturing_lot_code: e.target.value || null })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3 className="mt-6 text-[15px] font-bold">Box size and weight</h3>
+              <div className="mt-2">
+                <label className="label" htmlFor="box-size">
+                  Use a saved box size <span className="font-normal text-navy-soft">(optional)</span>
+                </label>
+                <select
+                  id="box-size"
+                  className="input"
+                  value={sizeId}
+                  onChange={(e) => applyBoxSize(boxSizes.find((b) => b.pack_template_id === e.target.value))}
+                >
+                  <option value="">{boxSizes.length ? "Choose a box size" : "No box sizes saved yet"}</option>
+                  {boxSizes.map((b) => (
+                    <option key={b.pack_template_id} value={b.pack_template_id}>
+                      {b.pack_template_name} ({b.length} × {b.width} × {b.height} in{b.weight ? `, ${b.weight} lb` : ""})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-sm text-navy-soft">
+                  Or type the measurements.{" "}
+                  <button className="font-semibold text-navy underline underline-offset-2" onClick={() => setSizeMode(true)}>
+                    Manage box sizes
+                  </button>
+                </p>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-3 gap-2 sm:col-span-2">
+                  {(["length", "width", "height"] as const).map((k) => (
+                    <div key={k}>
+                      <label className="label" htmlFor={k}>
+                        {{ length: "Length", width: "Width", height: "Height" }[k]} (in)
+                      </label>
+                      <input
+                        id={k}
+                        inputMode="decimal"
+                        className="input"
+                        value={dims[k]}
+                        onChange={(e) => {
+                          setTemplateId("");
+                          setSizeId("");
+                          setDims((d) => ({ ...d, [k]: e.target.value }));
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <label className="label" htmlFor="weight">
+                    Weight (lb)
                   </label>
                   <input
-                    id={k}
+                    id="weight"
                     inputMode="decimal"
                     className="input"
-                    value={dims[k]}
-                    onChange={(e) => {
-                      setTemplateId("");
-                      setDims((d) => ({ ...d, [k]: e.target.value }));
-                    }}
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
                   />
                 </div>
-              ))}
-            </div>
-            <div>
-              <label className="label" htmlFor="weight">
-                Weight (lb)
-              </label>
-              <input
-                id="weight"
-                inputMode="decimal"
-                className="input"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="notes">
-                Notes <span className="font-normal text-navy-soft">(optional)</span>
-              </label>
-              <input
-                id="notes"
-                className="input"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-          </div>
+                <div>
+                  <label className="label" htmlFor="notes">
+                    Notes <span className="font-normal text-navy-soft">(optional)</span>
+                  </label>
+                  <input
+                    id="notes"
+                    className="input"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+              </div>
 
-          <TemplateMatch match={match} draft={newTemplate} onSave={saveTemplate} />
-          {match.kind === "empty" && num(dims.length) && num(dims.width) && num(dims.height) && (
-            <SizeOnlyTemplate draft={{ ...newTemplate, items: [] }} onSave={saveTemplate} />
+              <TemplateMatch match={match} draft={newTemplate} onSave={saveTemplate} />
+
+              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+                <p className={`min-w-[14rem] flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
+                  {hint}
+                </p>
+                <button
+                  className="btn-ghost"
+                  disabled={!lines.length}
+                  onClick={() => {
+                    saveFnskuPrint(lines);
+                    window.open("/labels/fnsku", "_blank");
+                  }}
+                >
+                  <Icon name="printer" />
+                  Print FNSKU labels ({units})
+                </button>
+                <button className="btn-accent" disabled={!canSave} onClick={seal}>
+                  <Icon name="printer" />
+                  {saving ? "Sealing…" : "Seal box and print label"}
+                </button>
+              </div>
+              {error && <p className="mt-2 text-sm text-red-brand">{error}</p>}
+            </>
           )}
-
-          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-            <p className={`min-w-[14rem] flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
-              {hint}
-            </p>
-            <button
-              className="btn-ghost"
-              disabled={!lines.length}
-              onClick={() => {
-                saveFnskuPrint(lines);
-                window.open("/labels/fnsku", "_blank");
-              }}
-            >
-              <Icon name="printer" />
-              Print FNSKU labels ({units})
-            </button>
-            <button className="btn-accent" disabled={!canSave} onClick={seal}>
-              <Icon name="printer" />
-              {saving ? "Sealing…" : "Seal box and print label"}
-            </button>
-          </div>
-          {error && <p className="mt-2 text-sm text-red-brand">{error}</p>}
         </section>
       </div>
     </div>
@@ -614,36 +683,6 @@ function TemplateMatch({
   );
 }
 
-/** Offered when the box is still empty but has a size: saves just the measurements. */
-function SizeOnlyTemplate({
-  draft,
-  onSave,
-}: {
-  draft: NewPackTemplate;
-  onSave: (template: NewPackTemplate) => Promise<PackTemplate>;
-}) {
-  const [saved, setSaved] = useState<string | null>(null);
-  return (
-    <div className="mt-5 rounded-[4px] border border-dashed border-[#b9c8d2] bg-sky-wash px-4 py-3">
-      {saved ? (
-        <p className="text-sm font-bold">Saved “{saved}”. It’s in the template list now.</p>
-      ) : (
-        <>
-          <p className="font-bold">Save this size as a template?</p>
-          <p className="text-sm text-navy-soft">Keeps only the measurements, so you can pick this box size next time.</p>
-        </>
-      )}
-      {!saved && (
-        <SaveTemplateForm
-          draft={draft}
-          sizeOnlyFixed
-          onSave={async (template) => setSaved((await onSave(template)).pack_template_name)}
-        />
-      )}
-    </div>
-  );
-}
-
 /**
  * Names and creates a pack template from the box being packed. With products
  * in the box, it asks whether the template keeps them or only the size.
@@ -651,15 +690,13 @@ function SizeOnlyTemplate({
 function SaveTemplateForm({
   draft,
   onSave,
-  sizeOnlyFixed = false,
 }: {
   draft: NewPackTemplate;
   onSave: (template: NewPackTemplate) => Promise<void>;
-  sizeOnlyFixed?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(draft.pack_template_name);
-  const [withProducts, setWithProducts] = useState(!sizeOnlyFixed);
+  const [withProducts, setWithProducts] = useState(true);
   const sizeName = `Box ${draft.length} × ${draft.width} × ${draft.height} in`;
   const template: NewPackTemplate = { ...draft, pack_template_name: name.trim(), items: withProducts ? draft.items : [] };
   const [busy, setBusy] = useState(false);
@@ -676,7 +713,7 @@ function SaveTemplateForm({
         }}
       >
         <Icon name="plus" size={16} />
-        {sizeOnlyFixed ? "Save size as template" : "Save as pack template"}
+        Save as pack template
       </button>
     );
   }
@@ -696,7 +733,7 @@ function SaveTemplateForm({
 
   return (
     <div className="mt-3 space-y-2">
-      {!sizeOnlyFixed && (
+      {(draft.items ?? []).length > 0 && (
         <fieldset>
           <legend className="label">What should the template keep?</legend>
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
