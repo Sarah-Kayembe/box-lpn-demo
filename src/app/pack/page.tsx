@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
 import { Toggle } from "@/components/Toggle";
 import { Required } from "@/components/Required";
-import { missingForShipping, sizeWarnings } from "@/lib/box-size";
+import { missingForShipping, sizeProblems, sizeWarnings } from "@/lib/box-size";
+import { daysText, daysUntil, TOO_CLOSE_DAYS } from "@/lib/expiry";
 import { BoxSizes } from "./BoxSizes";
 import { IS_DEMO } from "@/lib/mode";
 import { AddPill, QuantityPill } from "@/components/QuantityPill";
@@ -242,13 +243,29 @@ export default function PackPage() {
 
   const units = lines.reduce((s, l) => s + l.quantity, 0);
   const missingExpiry = lines.filter((l) => l.requiresExpiration && !l.expires);
-  const canSave = lines.length > 0 && missingExpiry.length === 0 && !saving;
+  const expired = lines.filter((l) => l.expires && daysUntil(l.expires) < 0);
+  const shortDated = lines.filter((l) => l.expires && daysUntil(l.expires) >= 0 && daysUntil(l.expires) < TOO_CLOSE_DAYS);
+
+  // Size and weight: problems stop sealing, warnings don't
+  const sizeNow = { length: num(dims.length), width: num(dims.width), height: num(dims.height), weight: num(weight) };
+  const sizeBlockers = sizeProblems(sizeNow, units);
+  const sizeNotes = sizeWarnings(sizeNow, units);
+  const sizeMissing = missingForShipping(sizeNow);
+
+  const blocked = missingExpiry.length > 0 || expired.length > 0 || sizeBlockers.length > 0;
+  const canSave = lines.length > 0 && !blocked && !saving;
 
   const hint = useMemo(() => {
     if (!lines.length) return "Scan or search for an item to start packing.";
     if (missingExpiry.length) return `Add an expiration date for ${missingExpiry.map((l) => l.title).join(", ")}.`;
-    return `${units} ${units === 1 ? "unit" : "units"} of ${lines.length} ${lines.length > 1 ? "products" : "product"}. Ready to seal.`;
-  }, [lines, missingExpiry, units]);
+    if (expired.length) return `${expired.map((l) => l.title).join(", ")} ${expired.length > 1 ? "have" : "has"} expired. Take it out of the box or fix the date.`;
+    if (sizeBlockers.length) return sizeBlockers[0];
+    const ready = `${units} ${units === 1 ? "unit" : "units"} of ${lines.length} ${lines.length > 1 ? "products" : "product"}. Ready to seal.`;
+    if (shortDated.length) {
+      return `${ready} ${shortDated.map((l) => l.title).join(", ")} ${shortDated.length > 1 ? "have" : "has"} under ${TOO_CLOSE_DAYS} days left, too close for Amazon.`;
+    }
+    return ready;
+  }, [lines, missingExpiry, expired, shortDated, sizeBlockers, units]);
 
   async function seal() {
     setSaving(true);
@@ -500,6 +517,16 @@ export default function PackPage() {
                             value={l.expires ?? ""}
                             onChange={(e) => updateLine(l.sku, { expires: e.target.value || null })}
                           />
+                          {l.expires && daysUntil(l.expires) < 0 && (
+                            <p className="mt-1 text-xs font-semibold text-red-deep">
+                              {daysText(daysUntil(l.expires))}. Can’t be packed.
+                            </p>
+                          )}
+                          {l.expires && daysUntil(l.expires) >= 0 && daysUntil(l.expires) < TOO_CLOSE_DAYS && (
+                            <p className="mt-1 text-xs font-semibold text-butter">
+                              {daysText(daysUntil(l.expires))}. Too close for Amazon.
+                            </p>
+                          )}
                         </div>
                         <div>
                           <label className="label" htmlFor={`lot-${l.sku}`}>
@@ -591,31 +618,28 @@ export default function PackPage() {
                 </div>
               </div>
 
-              {(() => {
-                const size = { length: num(dims.length), width: num(dims.width), height: num(dims.height), weight: num(weight) };
-                const missing = missingForShipping(size);
-                const warnings = sizeWarnings(size);
-                return (
-                  <>
-                    {lines.length > 0 && missing.length > 0 && (
-                      <p className="mt-3 flex items-start gap-2 text-sm text-butter">
-                        <Icon name="info" size={16} className="mt-0.5 shrink-0" />
-                        No {missing.join(" or ")} yet. You can seal now, but you’ll need them before this box can ship.
-                      </p>
-                    )}
-                    {warnings.map((w) => (
-                      <p key={w} className="mt-2 text-sm text-butter">
-                        {w}
-                      </p>
-                    ))}
-                  </>
-                );
-              })()}
+              {lines.length > 0 && sizeMissing.length > 0 && (
+                <p className="mt-3 flex items-start gap-2 text-sm text-butter">
+                  <Icon name="info" size={16} className="mt-0.5 shrink-0" />
+                  No {sizeMissing.join(" or ")} yet. You can seal now, but you’ll need them before this box can ship.
+                </p>
+              )}
+              {sizeBlockers.map((w) => (
+                <p key={w} className="mt-2 flex items-start gap-2 text-sm font-semibold text-red-deep">
+                  <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
+                  {w}
+                </p>
+              ))}
+              {sizeNotes.map((w) => (
+                <p key={w} className="mt-2 text-sm text-butter">
+                  {w}
+                </p>
+              ))}
 
               <TemplateMatch match={match} draft={newTemplate} onSave={saveTemplate} />
 
               <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-                <p className={`min-w-[14rem] flex-1 text-sm ${missingExpiry.length ? "text-red-brand" : "text-navy-soft"}`}>
+                <p className={`min-w-[14rem] flex-1 text-sm ${blocked ? "font-semibold text-red-deep" : "text-navy-soft"}`}>
                   {hint}
                 </p>
                 <button
