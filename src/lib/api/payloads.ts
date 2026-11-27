@@ -35,6 +35,7 @@ export function mergeAzBoxItemsBody(tag: BoxTag, boxId: string | number) {
       box_id: boxId,
       sku: i.sku,
       fnsku: i.fnsku,
+      external_id: i.asin ?? null,
       set_quantity: i.quantity,
       expires: i.expires ? `${i.expires}T00:00:00.000Z` : null,
       manufacturing_lot_code: i.manufacturing_lot_code,

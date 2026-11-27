@@ -146,6 +146,20 @@ export const liveScanPower: ScanPowerSource = {
   },
 
   async addBoxToShipment(tag, shipment) {
+    // Boxes packed before BoxTag kept the ASIN need it looked up; ScanPower requires it per item
+    const items = await Promise.all(
+      tag.items.map(async (i) => {
+        if (i.asin) return i;
+        const match = (await liveScanPower.listInventory(i.sku)).find((inv) => inv.sku === i.sku);
+        return { ...i, asin: match?.product.asin ?? null };
+      }),
+    );
+    const missing = items.filter((i) => !i.asin).map((i) => i.sku);
+    if (missing.length) {
+      throw new Error(`ScanPower has no ASIN for ${missing.join(", ")}, and shipment boxes need one for each item.`);
+    }
+    tag = { ...tag, items };
+
     const created = await call<{ boxes: { box_id: string }[] }>(`/v3/az-box`, {
       method: "POST",
       body: JSON.stringify(insertAzBoxBody(tag, shipment)),
