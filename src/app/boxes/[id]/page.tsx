@@ -6,7 +6,7 @@ import { Alert } from "@/components/Alert";
 import { use, useEffect, useState } from "react";
 import { IS_DEMO } from "@/lib/mode";
 import { Required } from "@/components/Required";
-import { missingForShipping, sizeWarnings } from "@/lib/box-size";
+import { missingForShipping, sizeProblems, sizeWarnings } from "@/lib/box-size";
 import { daysText, expiryAlert, TOO_CLOSE_DAYS } from "@/lib/expiry";
 import { ProductThumb } from "@/components/ProductThumb";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -80,7 +80,10 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
         weight: Number(shipSize.weight) || null,
       }
     : box;
-  const shipWarnings = sizeWarnings(sizeForWarnings);
+  const shipWarnings = sizeWarnings(sizeForWarnings, totalUnits(box));
+  // Shown once the size is complete, so half-typed numbers don't flash errors
+  const shipProblems =
+    missingForShipping(sizeForWarnings).length === 0 ? sizeProblems(sizeForWarnings, totalUnits(box)) : [];
 
   // SKUs where ScanPower has fewer units at this location than the box holds
   const missing =
@@ -400,7 +403,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                     title={shipExpiry.level === "expired" ? "This box has expired" : `Under ${TOO_CLOSE_DAYS} days left`}
                   >
                     {daysText(shipExpiry.daysLeft)} ({formatDate(shipExpiry.date)}). Amazon wants more than {TOO_CLOSE_DAYS} days of
-                    shelf life and disposes of items within 50 days of expiring, so this box may be refused or thrown out.
+                    shelf life and disposes of items within 50 days of expiring, so this box may be refused or thrown out.{shipExpiry.level === "expired" && " Expired boxes can’t be added to a shipment."}
                   </Alert>
                 </div>
               )}
@@ -441,6 +444,11 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                   </div>
                 </div>
               )}
+              {shipProblems.map((w) => (
+                <p key={w} className="mt-3 text-sm font-semibold text-red-deep">
+                  {w}
+                </p>
+              ))}
               {shipWarnings.length > 0 && (
                 <ul className="mt-3 space-y-1 text-sm text-butter">
                   {shipWarnings.map((w) => (
@@ -467,7 +475,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
               </select>
               <button
                 className="btn-accent mt-3 w-full"
-                disabled={!shipment || busy !== null || (needsSize.length > 0 && !sizeTyped)}
+                disabled={!shipment || busy !== null || (needsSize.length > 0 && !sizeTyped) || shipProblems.length > 0 || shipExpiry?.level === "expired"}
                 onClick={ship}
               >
                 <Icon name="truck" />

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Required } from "@/components/Required";
+import { typoProblems } from "@/lib/box-size";
 import type { NewPackTemplate, PackTemplate } from "@/lib/types";
 
 /*
@@ -38,7 +39,8 @@ export function BoxSizes({
   const num = (v: string) => (v.trim() && Number(v) > 0 ? Number(v) : null);
   const [l, w, h] = [num(form.length), num(form.width), num(form.height)];
   const suggested = l && w && h ? `Box ${l} × ${w} × ${h} in` : "";
-  const ready = l && w && h && !busy;
+  const typos = typoProblems({ length: l, width: w, height: h, weight: num(form.weight) });
+  const ready = l && w && h && !busy && typos.length === 0;
 
   async function save() {
     if (!l || !w || !h) return;
@@ -138,6 +140,11 @@ export function BoxSizes({
           {field("weight", "Weight (lb, optional)")}
           {field("name", "Name (optional)")}
         </div>
+        {typos.map((t) => (
+          <p key={t} className="mt-3 text-sm font-semibold text-red-deep">
+            {t}
+          </p>
+        ))}
         <button className="btn-primary mt-4 w-full" disabled={!ready} onClick={save}>
           <Icon name="plus" size={18} />
           {busy ? "Saving…" : "Save box size"}
