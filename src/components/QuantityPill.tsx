@@ -8,7 +8,8 @@ import { Icon } from "./Icon";
  * AddPill is the sky blue "Add" for a product not in the box yet.
  * QuantityPill is the white pill for one already in it: minus, the number,
  * plus. The number has a dotted underline and can be tapped to type a
- * quantity. At 1, minus becomes a trash icon that removes the product.
+ * quantity. At 1, minus becomes a trash icon that removes the product, unless
+ * trashAtOne is off (where a separate remove button sits next to the pill).
  */
 
 const pill = "flex h-11 w-40 shrink-0 items-center rounded-full";
@@ -31,11 +32,13 @@ export function QuantityPill({
   title,
   onChange,
   onRemove,
+  trashAtOne = true,
 }: {
   value: number;
   title: string;
   onChange: (n: number) => void;
   onRemove: () => void;
+  trashAtOne?: boolean;
 }) {
   const [typing, setTyping] = useState(false);
   const [draft, setDraft] = useState(String(value));
@@ -62,12 +65,17 @@ export function QuantityPill({
     <div
       className={`${pill} justify-between border border-line bg-white/80 shadow-[0_2px_10px_rgba(31,40,52,0.08)] backdrop-blur`}
     >
-      {value <= 1 ? (
+      {value <= 1 && trashAtOne ? (
         <button className={`${side} hover:text-red-deep`} onClick={onRemove} aria-label={`Remove ${title} from the box`}>
           <Icon name="trash" size={18} />
         </button>
       ) : (
-        <button className={side} onClick={() => onChange(value - 1)} aria-label={`One less ${title}`}>
+        <button
+          className={`${side} disabled:opacity-35 disabled:hover:bg-transparent`}
+          disabled={value <= 1}
+          onClick={() => onChange(value - 1)}
+          aria-label={`One less ${title}`}
+        >
           <Icon name="minus" size={18} />
         </button>
       )}

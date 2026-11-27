@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IS_DEMO } from "@/lib/mode";
+import { ExpiryBell } from "./ExpiryBell";
 
 const links = [
   { href: "/", label: "Overview" },
@@ -26,13 +27,17 @@ export function AppHeader() {
         <nav className="flex flex-wrap gap-1 text-sm">
           {links.map((link) => {
             const active =
-              link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+              link.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 className={`rounded-full px-3.5 py-1.5 font-medium transition ${
-                  active ? "bg-sky-soft text-navy" : "text-navy-soft hover:bg-sky-wash"
+                  active
+                    ? "bg-sky-soft text-navy"
+                    : "text-navy-soft hover:bg-sky-wash"
                 }`}
               >
                 {link.label}
@@ -41,15 +46,18 @@ export function AppHeader() {
           })}
         </nav>
 
-        {IS_DEMO ? (
-          <span className="ml-auto inline-flex items-center rounded-full bg-butter px-3 py-1 text-[13px] font-bold text-white">
-            Demo data
-          </span>
-        ) : (
-          <span className="ml-auto inline-flex items-center rounded-full bg-mint px-3 py-1 text-[13px] font-bold text-white">
-            Connected to ScanPower
-          </span>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          <ExpiryBell />
+          {IS_DEMO ? (
+            <span className="inline-flex items-center rounded-full bg-butter px-3 py-1 text-[13px] font-bold text-white">
+              Demo data
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full bg-mint px-3 py-1 text-[13px] font-bold text-white">
+              Connected to ScanPower
+            </span>
+          )}
+        </div>
       </div>
     </header>
   );
