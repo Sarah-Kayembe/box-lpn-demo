@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { missingForShipping } from "@/lib/box-size";
 import { api } from "@/lib/api/client";
 import { earliestExpiry, formatDate, totalUnits } from "@/lib/format";
 import type { BoxTag, BoxTagStatus, Location } from "@/lib/types";
@@ -95,9 +96,16 @@ export default function BoxesPage() {
                 <span className="font-mono text-lg font-bold">{b.box_tag_id}</span>
                 <StatusBadge status={b.status} />
               </div>
+              {(b.status === "packed" || b.status === "stored") && missingForShipping(b).length > 0 && (
+                <span className="mt-2 inline-flex rounded-full bg-butter px-2.5 py-0.5 text-xs font-bold text-white">
+                  Needs {missingForShipping(b).join(" and ")}
+                </span>
+              )}
               <p className="mt-3 line-clamp-2 text-sm">{b.items.map((i) => `${i.quantity} × ${i.title}`).join(", ")}</p>
               <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-navy-soft">
-                <span>{totalUnits(b)} units</span>
+                <span>
+                  {totalUnits(b)} {totalUnits(b) === 1 ? "unit" : "units"}
+                </span>
                 {b.status !== "packed" && <span>{where(b)}</span>}
                 <span>Packed {formatDate(b.packed_at)}</span>
                 {expiry && <span className="text-butter">Expires {formatDate(expiry)}</span>}

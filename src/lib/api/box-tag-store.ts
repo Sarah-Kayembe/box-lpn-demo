@@ -109,6 +109,22 @@ export const boxTagStore = {
     }));
   },
 
+  /** Records the size and weight, for boxes that were sealed without them. */
+  async setSize(id: string, size: { length: number; width: number; height: number; weight: number }) {
+    return update(id, (b) => ({
+      ...b,
+      ...size,
+      history: [
+        ...b.history,
+        {
+          at: now(),
+          type: "measured",
+          note: `Measured: ${size.length} × ${size.width} × ${size.height} ${b.unit_of_measurement.toLowerCase()}, ${size.weight} ${b.unit_of_weight.toLowerCase()}`,
+        },
+      ],
+    }));
+  },
+
   /** Keeps the record, marked Unpacked, so its history stays traceable. */
   async unpack(id: string, note: string) {
     return update(id, (b) => ({

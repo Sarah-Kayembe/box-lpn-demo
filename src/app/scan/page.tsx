@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/components/Alert";
+import { Required } from "@/components/Required";
 import { Icon } from "@/components/Icon";
 import { api } from "@/lib/api/client";
 import { normalizeBoxTagId } from "@/lib/api/box-tag-store";
@@ -137,6 +138,7 @@ export default function ScanPage() {
       >
         <label className="label" htmlFor="code">
           Box ID
+          <Required />
         </label>
         <div className="flex gap-2">
           <input
