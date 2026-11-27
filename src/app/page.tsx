@@ -12,7 +12,7 @@ import type { BoxTag } from "@/lib/types";
 const steps = [
   { title: "Pack", text: "Scan items into a box and seal it." },
   { title: "Label", text: "Print one 4 × 6 barcode for the box and everything in it." },
-  { title: "Store", text: "Put it away at a location. The label remembers where." },
+  { title: "Store", text: "Put it away at a location. BoxTag records where it is." },
   { title: "Ship", text: "Scan it later and add the whole box to a shipment." },
 ];
 

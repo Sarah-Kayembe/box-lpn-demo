@@ -157,11 +157,11 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
           <>
             <Link href={`/labels/fnsku?box=${box.box_tag_id}`} className="btn-ghost ml-auto">
               <Icon name="printer" />
-              FNSKU labels
+              Print FNSKU labels
             </Link>
             <Link href={`/boxes/${box.box_tag_id}/label`} className="btn-ghost">
               <Icon name="printer" />
-              {box.history.some((h) => h.type === "label_printed") ? "Reprint label" : "Print label"}
+              {box.history.some((h) => h.type === "label_printed") ? "Reprint box label" : "Print box label"}
             </Link>
           </>
         )}
@@ -316,7 +316,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
                 </div>
                 {notice("location")}
                 <p className="mt-2 text-sm text-navy-soft">
-                  Saving also updates ScanPower’s location inventory for each SKU in the box.
+                  Saving also updates the counts in ScanPower.
                 </p>
                 {IS_DEMO && locationId && (
                   <div className="mt-3">
@@ -360,7 +360,7 @@ export default function BoxPage({ params }: { params: Promise<{ id: string }> })
           {/* Ship it */}
           {open && (
             <section className="card">
-              <h2 className="text-lg font-bold">Ready to ship?</h2>
+              <h2 className="text-lg font-bold">Add to a shipment</h2>
               {shipExpiry && shipExpiry.level !== "soon" && (
                 <div className="mt-3">
                   <Alert

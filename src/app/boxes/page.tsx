@@ -98,7 +98,7 @@ export default function BoxesPage() {
               <p className="mt-3 line-clamp-2 text-sm">{b.items.map((i) => `${i.quantity} × ${i.title}`).join(", ")}</p>
               <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-navy-soft">
                 <span>{totalUnits(b)} units</span>
-                <span>{where(b)}</span>
+                {b.status !== "packed" && <span>{where(b)}</span>}
                 <span>Packed {formatDate(b.packed_at)}</span>
                 {expiry && <span className="text-butter">Expires {formatDate(expiry)}</span>}
               </div>
